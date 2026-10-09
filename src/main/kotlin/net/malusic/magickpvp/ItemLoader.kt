@@ -60,19 +60,35 @@ data class CustomItem(
     val ability: Ability?
 )
 
+data class CustomKit(
+    val id: String,
+    val name: String,
+    val buyPrice: Double,
+    val sellPrice: Double,
+    val pieces: Map<String, CustomItem>
+) {
+    fun displayPiece(preferred: String?): CustomItem? =
+        preferred?.let { pieces[it] ?: pieces.entries.firstOrNull { e -> e.key.equals(it, true) }?.value }
+            ?: pieces.values.firstOrNull()
+}
+
 class ItemLoader(private val plugin: PluginManager) {
 
     private val itemKey = NamespacedKey(plugin, "item_id")
-    private var items: Map<String, CustomItem> = emptyMap()
+    private var kits: Map<String, CustomKit> = emptyMap()
+    private var piecesById: Map<String, CustomItem> = emptyMap()
 
-    val ids: Set<String> get() = items.keys
+    val ids: Set<String> get() = kits.keys
 
-    fun all(): Collection<CustomItem> = items.values
+    fun all(): Collection<CustomKit> = kits.values
 
-    fun get(id: String?): CustomItem? {
+    fun get(id: String?): CustomKit? {
         if (id == null) return null
-        return items[id] ?: items.values.firstOrNull { it.id.equals(id, ignoreCase = true) }
+        return kits[id] ?: kits.values.firstOrNull { it.id.equals(id, ignoreCase = true) }
     }
+
+    fun piece(id: String?): CustomItem? = if (id == null) null else
+        piecesById[id] ?: piecesById.values.firstOrNull { it.id.equals(id, ignoreCase = true) }
 
     fun itemId(stack: ItemStack?): String? {
         if (stack == null || stack.type.isAir || !stack.hasItemMeta()) return null
@@ -84,16 +100,34 @@ class ItemLoader(private val plugin: PluginManager) {
         if (!file.exists()) plugin.saveResource("items.yml", false)
         val yaml = YamlConfiguration.loadConfiguration(file)
 
-        val loaded = LinkedHashMap<String, CustomItem>()
+        val loaded = LinkedHashMap<String, CustomKit>()
+        val allPieces = LinkedHashMap<String, CustomItem>()
         for (id in yaml.getKeys(false)) {
             val section = yaml.getConfigurationSection(id) ?: continue
-            parseItem(id, section)?.let { loaded[id] = it }
+            val pieceMap = LinkedHashMap<String, CustomItem>()
+            for (pieceKey in section.getKeys(false)) {
+                if (pieceKey.equals("name", true) || pieceKey.equals("price", true)) continue
+                val pieceSection = section.getConfigurationSection(pieceKey) ?: continue
+                val parsed = parseItem("$id:$pieceKey", section.getString("name") ?: id, pieceSection) ?: continue
+                pieceMap[pieceKey] = parsed
+                allPieces[parsed.id] = parsed
+            }
+            if (pieceMap.isEmpty()) {
+                plugin.logger.warning("Kit '$id' has no item sections (expected helmet/chestplate/etc), skipping it.")
+                continue
+            }
+            loaded[id] = CustomKit(id, section.getString("name") ?: id,
+                section.getDouble("price.buy", 0.0).coerceAtLeast(0.0),
+                section.getDouble("price.sell", 0.0).coerceAtLeast(0.0), pieceMap)
         }
-        items = loaded
-        plugin.logger.info("Loaded ${items.size} item(s) from items.yml.")
+        kits = loaded
+        piecesById = allPieces
+        plugin.logger.info("Loaded ${kits.size} kit(s) containing ${piecesById.size} item(s) from items.yml.")
     }
 
-    fun build(id: String, tagged: Boolean = true): ItemStack? = get(id)?.let { build(it, tagged) }
+    fun build(id: String, tagged: Boolean = true): List<ItemStack>? = get(id)?.let { build(it, tagged) }
+
+    fun build(kit: CustomKit, tagged: Boolean = true): List<ItemStack> = kit.pieces.values.map { build(it, tagged) }
 
     fun build(custom: CustomItem, tagged: Boolean = true): ItemStack {
         val stack = ItemStack(custom.material, custom.amount.coerceIn(1, custom.material.maxStackSize))
@@ -108,7 +142,6 @@ class ItemLoader(private val plugin: PluginManager) {
         for ((enchant, level) in custom.enchantments) meta.addEnchant(enchant, level, true)
 
         if (custom.attributes.isNotEmpty()) {
-            // Adding any modifier replaces the item's vanilla ones, so copy them back first.
             for (slot in EquipmentSlot.values()) {
                 val defaults = runCatching { custom.material.asItemType()?.getDefaultAttributeModifiers(slot) }.getOrNull()
                     ?: continue
@@ -150,9 +183,7 @@ class ItemLoader(private val plugin: PluginManager) {
 
     private fun safeKey(raw: String): String = raw.lowercase().replace(Regex("[^a-z0-9._-]"), "_")
 
-    // ----------------------------------------------------------------- parsing
-
-    private fun parseItem(id: String, s: ConfigurationSection): CustomItem? {
+    private fun parseItem(id: String, kitName: String, s: ConfigurationSection): CustomItem? {
         val material = s.getString("material")?.let { Material.matchMaterial(it) }
         if (material == null || !material.isItem || material.isAir) {
             plugin.logger.warning("Item '$id' has an invalid material, skipping it.")
@@ -198,14 +229,14 @@ class ItemLoader(private val plugin: PluginManager) {
 
         return CustomItem(
             id = id,
-            name = s.getString("name") ?: id,
+            name = s.getString("name") ?: kitName,
             material = material,
             amount = s.getInt("amount", 1),
             glow = s.getBoolean("glow", false),
             attributes = attributes,
             enchantments = enchantments,
-            buyPrice = s.getDouble("price.buy", 0.0).coerceAtLeast(0.0),
-            sellPrice = s.getDouble("price.sell", 0.0).coerceAtLeast(0.0),
+            buyPrice = 0.0,
+            sellPrice = 0.0,
             lore = s.getStringList("lore"),
             cooldownTicks = parseDuration(s.getString("cooldown")),
             ability = ability
@@ -288,7 +319,6 @@ class ItemLoader(private val plugin: PluginManager) {
         return ParticleSpec(particle, s.getInt("amount", 1).coerceAtLeast(1), s.getDouble("speed", 0.0))
     }
 
-    /** Accepts vanilla keys (angry_villager) and the dotted form (villager.angry). */
     private fun findParticle(raw: String): Particle? {
         val key = raw.trim().lowercase()
         val candidates = linkedSetOf(

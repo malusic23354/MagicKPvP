@@ -7,4 +7,12 @@ menu:
   pages: 1
   autofill: true
   decoration: BLACK_STAINED_GLASS_PANE
-  kits: []
+  kits:
+    - id: curse_kit
+      slot: 20
+      page: 1
+      displayitem: sword
+    - id: levitation_kit
+      slot: 24
+      page: 1
+      displayitem: snowball

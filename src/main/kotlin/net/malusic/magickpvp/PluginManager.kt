@@ -32,6 +32,7 @@ class PluginManager : JavaPlugin() {
         kits.load()
 
         server.pluginManager.registerEvents(abilities, this)
+        server.pluginManager.registerEvents(kits, this)
         server.pluginManager.registerEvents(kitMenu, this)
         abilities.start()
 
@@ -44,7 +45,7 @@ class PluginManager : JavaPlugin() {
         if (!economy.available) {
             logger.warning("No Vault economy provider found yet, buying and selling kits will not work until one is loaded.")
         }
-        logger.info("Plugin has been enabled!")
+        logger.info("Plugin Is ON!")
     }
 
     override fun onDisable() {

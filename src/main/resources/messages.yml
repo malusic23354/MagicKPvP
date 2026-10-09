@@ -17,9 +17,9 @@ previous-page: "<gray>Previous page"
 next-page: "<gray>Next page"
 usage: "<gray>Usage: <gold>/magickpvp <menu|reload|select|buy|sell|info>"
 usage-kit: "<gray>Usage: <gold>/magickpvp {sub} <kit>"
-cooldown: "<red>{item} is on cooldown for {time}s."
 info:
   - "<gold>Name: <white>{name}"
   - "<gold>Version: <white>{version}"
   - "<gold>Author: <white>{author}"
   - "<gold>Description: <white>{description}"
+cooldown: "<red>{item} is on cooldown for {time}s."\n

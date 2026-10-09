@@ -1,59 +1,92 @@
-kit1:
-  name: '<red>Curse Blade'
-  material: NETHERITE_SWORD
-  glow: true
-  attributes:
-    - attribute: MOVEMENT_SPEED
-      amount: 0.1
-      operation: ADD_NUMBER
-      slot: MAINHAND
-      type: override
-      text: 'Value: <red>0.1'
-  enchantments:
-    - 'sharpness:4'
-  cooldown: "10s"
+curse_kit:
+  name: '<red>Curse Kit'
   price:
-    sell: 100
     buy: 1000
-  lore:
-    - '<white>Hold it to curse nearby players.'
-  ability:
-    type: radiusEffect
-    shape: circular
-    width: 3
-    particle:
-      type: angry_villager
-      amount: 6
-      speed: 0
-    duration: 5s
-    effects:
-      - 'slowness:2'
-    activationmessage:
-      - for: target
-        message: '<dark_red>You have been Cursed'
-      - for: inflictor
-        message: '<gray>{target} stepped into your curse.'
+    sell: 100
+  helmet:
+    name: '<red>Curse Helmet'
+    material: NETHERITE_HELMET
+    glow: true
+    enchantments:
+      - 'protection:4'
+    lore:
+      - '<white>A cursed helmet.'
+  chestplate:
+    name: '<red>Curse Chestplate'
+    material: NETHERITE_CHESTPLATE
+    glow: true
+    enchantments:
+      - 'protection:4'
+    lore:
+      - '<white>A cursed chestplate.'
+  leggings:
+    name: '<red>Curse Leggings'
+    material: NETHERITE_LEGGINGS
+    glow: true
+    enchantments:
+      - 'protection:4'
+  boots:
+    name: '<red>Curse Boots'
+    material: NETHERITE_BOOTS
+    glow: true
+    enchantments:
+      - 'protection:4'
+  sword:
+    name: '<red>Curse Blade'
+    material: NETHERITE_SWORD
+    glow: true
+    attributes:
+      - attribute: MOVEMENT_SPEED
+        amount: 0.1
+        operation: ADD_NUMBER
+        slot: MAINHAND
+        type: override
+        text: 'Value: <red>0.1'
+    enchantments:
+      - 'sharpness:4'
+    lore:
+      - '<white>Right-click to curse nearby players.'
+    cooldown: 10s
+    ability:
+      type: radiusEffect
+      shape: circular
+      width: 3
+      particle:
+        type: angry_villager
+        amount: 6
+        speed: 0
+      duration: 5s
+      effects:
+        - 'slowness:2'
+      activationmessage:
+        - for: target
+          message: '<dark_red>You have been Cursed'
+        - for: inflictor
+          message: '<gray>{target} stepped into your curse.'
 
-kit2:
-  name: '<aqua>Levitation Snowball'
-  material: SNOWBALL
-  amount: 16
-  glow: true
+levitation_kit:
+  name: '<aqua>Levitation Kit'
   price:
-    sell: 50
     buy: 500
-  lore:
-    - '<white>Throw it at a player.'
-  ability:
-    type: targetted
-    particle:
-      type: crit
-      amount: 10
-      speed: 0.2
-    commands:
-      - 'effect give @target minecraft:levitation 3 1'
-    activationmessage:
-      - for: target
-        message: '<aqua>{inflictor} lifted you off the ground!'
-      - for: inflictor
-        message: '<green>You hit {target}!'
+    sell: 50
+  snowball:
+    name: '<aqua>Levitation Snowball'
+    material: SNOWBALL
+    amount: 16
+    glow: true
+    lore:
+      - '<white>Throw it at a player.'
+    cooldown: 10s
+    ability:
+      type: targeted
+      particle:
+        type: crit
+        amount: 10
+        speed: 0.2
+      commands:
+        - 'effect give @target minecraft:levitation 3 1'
+      activationmessage:
+        - for: target
+          message: '<aqua>{inflictor} lifted you off the ground!'
+        - for: inflictor
+          message: '<green>You hit {target}!'

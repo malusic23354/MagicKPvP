@@ -8,7 +8,8 @@ data class KitEntry(
     val id: String,
     val slot: Int?,
     val page: Int,
-    val lore: List<String>
+    val lore: List<String>,
+    val displayItem: String?
 )
 
 class ConfigurationLoader(private val plugin: PluginManager) {
@@ -66,7 +67,8 @@ class ConfigurationLoader(private val plugin: PluginManager) {
             }
             val page = ((map["page"] as? Number)?.toInt() ?: 1).coerceIn(1, MAX_PAGES)
             val lore = (map["lore"] as? List<*>)?.map { it.toString() } ?: emptyList()
-            parsed += KitEntry(id, slot, page, lore)
+            val displayItem = map["displayitem"]?.toString()
+            parsed += KitEntry(id, slot, page, lore, displayItem)
         }
         kits = parsed
     }

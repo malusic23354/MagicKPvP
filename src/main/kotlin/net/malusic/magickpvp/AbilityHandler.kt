@@ -61,7 +61,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
         val player = event.player
         val itemId = plugin.itemLoader.itemId(event.item) ?: return
-        val custom = plugin.itemLoader.get(itemId) ?: return
+        val custom = plugin.itemLoader.piece(itemId) ?: return
         val now = System.currentTimeMillis()
         val cooldownKey = player.uniqueId to itemId
         val expiresAt = cooldowns[cooldownKey] ?: 0L
@@ -184,7 +184,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
         val itemId = sequenceOf(shooter.inventory.itemInMainHand, shooter.inventory.itemInOffHand)
             .mapNotNull { plugin.itemLoader.itemId(it) }
-            .firstOrNull { plugin.itemLoader.get(it)?.ability?.type == AbilityType.TARGETED }
+            .firstOrNull { plugin.itemLoader.piece(it)?.ability?.type == AbilityType.TARGETED }
             ?: return
 
         projectile.persistentDataContainer.set(projectileKey, PersistentDataType.STRING, itemId)
@@ -206,7 +206,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         val inflictor = projectile.shooter as? Player ?: return
         if (target.uniqueId == inflictor.uniqueId) return
 
-        val ability = plugin.itemLoader.get(itemId)?.ability ?: return
+        val ability = plugin.itemLoader.piece(itemId)?.ability ?: return
         if (ability.type != AbilityType.TARGETED) return
 
         for (command in ability.commands) {
