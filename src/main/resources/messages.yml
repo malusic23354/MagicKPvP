@@ -22,4 +22,4 @@ info:
   - "<gold>Version: <white>{version}"
   - "<gold>Author: <white>{author}"
   - "<gold>Description: <white>{description}"
-cooldown: "<red>{item} is on cooldown for {time}s."\n
+cooldown: "<red>{item} is on cooldown for {time}s."

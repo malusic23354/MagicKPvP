@@ -22,11 +22,6 @@ enum class KitResult {
     NO_ECONOMY
 }
 
-/**
- * Handles buying, selling and selecting kits. A kit is an entry of items.yml.
- * A player owns a kit when they bought it (saved in data.yml) or hold the permission magickpvp.kit.<id>.
- * Every method sends the matching message to the player itself.
- */
 class KitManager(private val plugin: PluginManager) : Listener {
 
     private val activeKit = HashMap<UUID, String>()
@@ -65,8 +60,6 @@ class KitManager(private val plugin: PluginManager) : Listener {
 
     fun ownedKits(player: Player): List<String> = plugin.itemLoader.ids.filter { owns(player, it) }
 
-    // ------------------------------------------------------------------ actions
-
     fun select(player: Player, id: String): KitResult {
         val kit = plugin.itemLoader.get(id) ?: return fail(player, KitResult.UNKNOWN_KIT, "unknown-kit")
         if (!player.hasPermission("magickpvp.select")) return fail(player, KitResult.NO_PERMISSION, "no-permission")
@@ -81,16 +74,16 @@ class KitManager(private val plugin: PluginManager) : Listener {
                 Material.TURTLE_HELMET, Material.CARVED_PUMPKIN, Material.PLAYER_HEAD,
                 Material.SKELETON_SKULL, Material.WITHER_SKELETON_SKULL, Material.ZOMBIE_HEAD,
                 Material.CREEPER_HEAD, Material.DRAGON_HEAD, Material.PIGLIN_HEAD ->
-                    player.inventory.helmet = stack
+                    player.inventory.setHelmet(stack)
                 Material.LEATHER_CHESTPLATE, Material.CHAINMAIL_CHESTPLATE, Material.IRON_CHESTPLATE,
                 Material.GOLDEN_CHESTPLATE, Material.DIAMOND_CHESTPLATE, Material.NETHERITE_CHESTPLATE,
-                Material.ELYTRA -> player.inventory.chestplate = stack
+                Material.ELYTRA -> player.inventory.setChestplate(stack)
                 Material.LEATHER_LEGGINGS, Material.CHAINMAIL_LEGGINGS, Material.IRON_LEGGINGS,
                 Material.GOLDEN_LEGGINGS, Material.DIAMOND_LEGGINGS, Material.NETHERITE_LEGGINGS ->
-                    player.inventory.leggings = stack
+                    player.inventory.setLeggings(stack)
                 Material.LEATHER_BOOTS, Material.CHAINMAIL_BOOTS, Material.IRON_BOOTS,
                 Material.GOLDEN_BOOTS, Material.DIAMOND_BOOTS, Material.NETHERITE_BOOTS ->
-                    player.inventory.boots = stack
+                    player.inventory.setBoots(stack)
                 else -> {
                     val leftovers = player.inventory.addItem(stack)
                     leftovers.values.forEach { player.world.dropItemNaturally(player.location, it) }
@@ -105,16 +98,15 @@ class KitManager(private val plugin: PluginManager) : Listener {
 
     fun clearInventory(player: Player) {
         player.inventory.clear()
-        player.inventory.helmet = null
-        player.inventory.chestplate = null
-        player.inventory.leggings = null
-        player.inventory.boots = null
+        player.inventory.setHelmet(null)
+        player.inventory.setChestplate(null)
+        player.inventory.setLeggings(null)
+        player.inventory.setBoots(null)
         player.inventory.setItemInOffHand(null)
     }
 
     @EventHandler
     fun onPlayerDeath(event: PlayerDeathEvent) {
-        // Prevent the kit from dropping and remove it immediately from the dead player.
         event.drops.clear()
         clearInventory(event.entity)
         activeKit.remove(event.entity.uniqueId)
