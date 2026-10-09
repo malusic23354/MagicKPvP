@@ -1,0 +1,59 @@
+kit1:
+  name: '<red>Curse Blade'
+  material: NETHERITE_SWORD
+  glow: true
+  attributes:
+    - attribute: MOVEMENT_SPEED
+      amount: 0.1
+      operation: ADD_NUMBER
+      slot: MAINHAND
+      type: override
+      text: 'Value: <red>0.1'
+  enchantments:
+    - 'sharpness:4'
+  cooldown: "10s"
+  price:
+    sell: 100
+    buy: 1000
+  lore:
+    - '<white>Hold it to curse nearby players.'
+  ability:
+    type: radiusEffect
+    shape: circular
+    width: 3
+    particle:
+      type: angry_villager
+      amount: 6
+      speed: 0
+    duration: 5s
+    effects:
+      - 'slowness:2'
+    activationmessage:
+      - for: target
+        message: '<dark_red>You have been Cursed'
+      - for: inflictor
+        message: '<gray>{target} stepped into your curse.'
+
+kit2:
+  name: '<aqua>Levitation Snowball'
+  material: SNOWBALL
+  amount: 16
+  glow: true
+  price:
+    sell: 50
+    buy: 500
+  lore:
+    - '<white>Throw it at a player.'
+  ability:
+    type: targetted
+    particle:
+      type: crit
+      amount: 10
+      speed: 0.2
+    commands:
+      - 'effect give @target minecraft:levitation 3 1'
+    activationmessage:
+      - for: target
+        message: '<aqua>{inflictor} lifted you off the ground!'
+      - for: inflictor
+        message: '<green>You hit {target}!'

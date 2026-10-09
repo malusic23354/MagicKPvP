@@ -1,0 +1,54 @@
+name: MagicKPvP
+version: '1.0.0'
+main: net.malusic.magickpvp.PluginManager
+api-version: '1.21.11'
+description: MagicKPvP is a plugin for kitpvp servers with custom kits and cool abilities.
+author: Malusic
+depend: [Vault]
+libraries:
+  - org.jetbrains.kotlin:kotlin-stdlib:2.2.20
+
+commands:
+  magickpvp:
+    description: Main MagicKPvP command.
+    usage: /<command> <menu|reload|select|buy|sell|info>
+    aliases: [mkp]
+    permission: magickpvp.command
+
+permissions:
+  magickpvp.command:
+    description: Allows use of /magickpvp.
+    default: true
+  magickpvp.menu:
+    description: Allows opening the kit menu.
+    default: true
+  magickpvp.select:
+    description: Allows selecting owned kits.
+    default: true
+  magickpvp.buy:
+    description: Allows buying kits.
+    default: true
+  magickpvp.sell:
+    description: Allows selling purchased kits.
+    default: true
+  magickpvp.info:
+    description: Allows viewing plugin info.
+    default: true
+  magickpvp.reload:
+    description: Allows reloading all configuration files.
+    default: op
+  magickpvp.kit.*:
+    description: Grants ownership of every kit without buying it. Individual kits use magickpvp.kit.<id>.
+    default: false
+  magickpvp.admin:
+    description: All MagicKPvP permissions.
+    default: op
+    children:
+      magickpvp.command: true
+      magickpvp.menu: true
+      magickpvp.select: true
+      magickpvp.buy: true
+      magickpvp.sell: true
+      magickpvp.info: true
+      magickpvp.reload: true
+      magickpvp.kit.*: true
