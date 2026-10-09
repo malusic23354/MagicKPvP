@@ -17,6 +17,9 @@ previous-page: "<gray>Previous page"
 next-page: "<gray>Next page"
 usage: "<gray>Usage: <gold>/magickpvp <menu|reload|select|buy|sell|info>"
 usage-kit: "<gray>Usage: <gold>/magickpvp {sub} <kit>"
+expiring: '<gold>Flight expiring in {expire}'
+ability-cooldown: "<red>This item's ability is on cooldown."
+storage-error: "<red>Your kit data could not be loaded, please try again in a moment."
 info:
   - "<gold>Name: <white>{name}"
   - "<gold>Version: <white>{version}"

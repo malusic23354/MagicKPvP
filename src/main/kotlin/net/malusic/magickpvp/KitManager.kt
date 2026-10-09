@@ -1,15 +1,13 @@
 package net.malusic.magickpvp
 
-import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.player.PlayerQuitEvent
-import org.bukkit.inventory.ItemStack
-import java.io.File
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 enum class KitResult {
     SUCCESS,
@@ -19,35 +17,25 @@ enum class KitResult {
     NOT_OWNED,
     CANNOT_SELL,
     INSUFFICIENT_FUNDS,
-    NO_ECONOMY
+    NO_ECONOMY,
+    IN_COMBAT
 }
 
 class KitManager(private val plugin: PluginManager) : Listener {
 
     private val activeKit = HashMap<UUID, String>()
-    private val file = File(plugin.dataFolder, "data.yml")
-    private val purchased = HashMap<UUID, MutableSet<String>>()
+    private val purchased = ConcurrentHashMap<UUID, MutableSet<String>>()
 
-    fun load() {
-        purchased.clear()
-        if (!file.exists()) return
-        val yaml = YamlConfiguration.loadConfiguration(file)
-        for (key in yaml.getKeys(false)) {
-            val uuid = runCatching { UUID.fromString(key) }.getOrNull() ?: continue
-            purchased[uuid] = yaml.getStringList(key).toMutableSet()
-        }
+    fun cache(uuid: UUID, kits: Collection<String>) {
+        purchased[uuid] = newSet(kits)
     }
 
-    fun save() {
-        val yaml = YamlConfiguration()
-        for ((uuid, kits) in purchased) {
-            if (kits.isNotEmpty()) yaml.set(uuid.toString(), kits.toList())
-        }
-        runCatching {
-            plugin.dataFolder.mkdirs()
-            yaml.save(file)
-        }.onFailure { plugin.logger.warning("Could not save data.yml: ${it.message}") }
+    fun uncache(uuid: UUID) {
+        purchased.remove(uuid)
     }
+
+    private fun newSet(values: Collection<String>): MutableSet<String> =
+        ConcurrentHashMap.newKeySet<String>().apply { addAll(values) }
 
     fun hasPermission(player: Player, kitId: String): Boolean =
         player.hasPermission("magickpvp.kit.${kitId.lowercase()}")
@@ -64,6 +52,10 @@ class KitManager(private val plugin: PluginManager) : Listener {
         val kit = plugin.itemLoader.get(id) ?: return fail(player, KitResult.UNKNOWN_KIT, "unknown-kit")
         if (!player.hasPermission("magickpvp.select")) return fail(player, KitResult.NO_PERMISSION, "no-permission")
         if (!owns(player, kit.id)) return fail(player, KitResult.NOT_OWNED, "no-ownership")
+        if (plugin.combat.blocksKitSwitch(player)) {
+            plugin.messages.send(player, "in-combat", "time" to plugin.combat.remainingSeconds(player).toString())
+            return KitResult.IN_COMBAT
+        }
 
         clearInventory(player)
 
@@ -127,8 +119,9 @@ class KitManager(private val plugin: PluginManager) : Listener {
             return fail(player, KitResult.INSUFFICIENT_FUNDS, "insufficient-funds")
         }
 
-        purchased.getOrPut(player.uniqueId) { HashSet() }.add(kit.id)
-        save()
+        val buyer = player.uniqueId
+        purchased.getOrPut(buyer) { newSet(emptyList()) }.add(kit.id)
+        plugin.data.write { it.addKit(buyer, kit.id) }
 
         plugin.messages.send(
             player, "purchased",
@@ -146,8 +139,9 @@ class KitManager(private val plugin: PluginManager) : Listener {
         if (!plugin.economy.available) return fail(player, KitResult.NO_ECONOMY, "no-economy")
 
         plugin.economy.deposit(player, kit.sellPrice)
-        purchased[player.uniqueId]?.remove(kit.id)
-        save()
+        val seller = player.uniqueId
+        purchased[seller]?.remove(kit.id)
+        plugin.data.write { it.removeKit(seller, kit.id) }
         removeFromInventory(player, kit.id)
 
         plugin.messages.send(

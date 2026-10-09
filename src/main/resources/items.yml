@@ -1,120 +1,90 @@
-curse_kit:
-  name: '<red>Curse Kit'
+example_kit:
+  name: "<dark_purple>Example Kit"
+
   price:
     buy: 1000
-    sell: 100
-  helmet:
-    name: '<red>Curse Helmet'
-    material: NETHERITE_HELMET
-    glow: true
-    enchantments:
-      - 'protection:4'
-    lore:
-      - '<white>A cursed helmet.'
-  chestplate:
-    name: '<red>Curse Chestplate'
-    material: NETHERITE_CHESTPLATE
-    glow: true
-    enchantments:
-      - 'protection:4'
-    lore:
-      - '<white>A cursed chestplate.'
-  leggings:
-    name: '<red>Curse Leggings'
-    material: NETHERITE_LEGGINGS
-    glow: true
-    enchantments:
-      - 'protection:4'
-  boots:
-    name: '<red>Curse Boots'
-    material: NETHERITE_BOOTS
-    glow: true
-    enchantments:
-      - 'protection:4'
+    sell: 550
+
   sword:
-    name: '<red>Curse Blade'
+    name: "<dark_purple>Ability Sword"
     material: NETHERITE_SWORD
+    amount: 1
     glow: true
-    attributes:
-      - attribute: MOVEMENT_SPEED
-        amount: 0.1
-        operation: ADD_NUMBER
-        slot: MAINHAND
-        type: override
-        text: 'Value: <red>0.1'
+
+    # Format: ENCHANTMENT:LEVEL
     enchantments:
-      - 'sharpness:4'
-    lore:
-      - '<white>Right-click to curse nearby players.'
-    cooldown: 10s
-    ability:
-      type: radiusEffect
-      shape: circular
-      width: 3
-      particle:
-        type: angry_villager
-        amount: 6
-        speed: 0
-      duration: 5s
-      effects:
-        - 'slowness:2'
-      activationmessage:
-        - for: target
-          message: '<dark_red>You have been Cursed'
-        - for: inflictor
-          message: '<gray>{target} stepped into your curse.'
+      - sharpness:4
+      - unbreaking:3
+      - mending:1
 
-levitation_kit:
-  name: '<aqua>Levitation Kit'
-  price:
-    buy: 500
-    sell: 50
-  snowball:
-    name: '<aqua>Levitation Snowball'
-    material: SNOWBALL
-    amount: 16
-    glow: true
-    lore:
-      - '<white>Throw it at a player.'
-    cooldown: 10s
-    ability:
-      type: targeted
-      particle:
-        type: crit
-        amount: 10
-        speed: 0.2
-      commands:
-        - 'effect give @target minecraft:levitation 3 1'
-      activationmessage:
-        - for: target
-          message: '<aqua>{inflictor} lifted you off the ground!'
-        - for: inflictor
-          message: '<green>You hit {target}!'
+    # Item attributes
+    attributes:
+      - attribute: attack_damage
+        amount: 15
+        operation: add_number
+        slot: mainhand
+        type: override
+        text: "<gold>+15 Attack Damage"
 
-randomized_kit:
-  name: '<light_purple>Chaos Kit'
-  price:
-    buy: 1200
-    sell: 120
-  chaos_wand:
-    name: '<light_purple>Chaos Wand'
-    material: BLAZE_ROD
-    glow: true
-    cooldown: 15s
     lore:
-      - '<white>Right-click to curse a random nearby player.'
-    ability:
-      type: randomizedtarget
-      range: 12
-      commands:
-        - 'effect give @target minecraft:blindness 4 0 true'
-      particle:
-        type: witch
-        amount: 12
-        speed: 0.1
-      activationmessage:
-        - for: target
-          message: '<light_purple>Chaos magic has targeted you!'
-        - for: inflictor
-          message: '<green>You randomly targeted {target}!'
+      - "<gray>An example custom item."
+      - "<light_purple>Contains multiple abilities."
 
+    # Item cooldown, applied by your ability handler
+    cooldown: 30s
+
+    # Item potion metadata (for potion-compatible materials)
+    potion:
+      type: speed
+      duration: 30s
+      amplifier: 1
+
+    # Named ability sections
+    abilities:
+
+      flight:
+        type: flight
+        duration: 10s
+
+      potion_boost:
+        type: potion_effect
+        duration: 15s
+        effects:
+          - speed:2
+          - strength:1
+
+      radius_attack:
+        type: radiuseffect
+        shape: circular
+        width: 5
+        range: 10
+        duration: 3s
+        particle:
+          type: flame
+          amount: 20
+          speed: 0.1
+        effects:
+          - slowness:2
+          - weakness:1
+          - fire
+        activationmessage:
+          - for: target
+            message: "<red>You were hit by a radius ability!"
+          - for: inflictor
+            message: "<green>Your radius ability activated!"
+
+      projectile_attack: #this is made for projectiles.
+        type: projected
+        range: 15
+        duration: 5s
+        effects:
+          - poison:1
+        commands:
+          - "say Targeted ability activated"
+
+      random_target:
+        type: randomized_target
+        range: 20
+        duration: 5s
+        effects:
+          - blindness:1

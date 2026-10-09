@@ -15,14 +15,15 @@ import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.potion.PotionEffectType
+import org.bukkit.potion.PotionEffect
+import org.bukkit.inventory.meta.PotionMeta
 import java.io.File
 
-enum class AbilityType { RADIUS_EFFECT, TARGETED, RANDOMIZED_TARGET }
 enum class AbilityShape { CIRCULAR, BOX, SPHERE }
 enum class MessageReceiver { TARGET, INFLICTOR }
 
 data class ParticleSpec(val particle: Particle, val amount: Int, val speed: Double)
-data class EffectSpec(val type: PotionEffectType, val amplifier: Int)
+data class EffectSpec(val type: PotionEffectType?, val amplifier: Int, val fire: Boolean = false)
 data class ActivationMessage(val receiver: MessageReceiver, val message: String)
 
 data class AttributeSpec(
@@ -34,8 +35,14 @@ data class AttributeSpec(
     val text: String?
 )
 
+data class PotionSpec(
+    val type: PotionEffectType,
+    val durationTicks: Int,
+    val amplifier: Int
+)
+
 data class Ability(
-    val type: AbilityType,
+    val type: String,
     val shape: AbilityShape,
     val width: Double,
     val range: Double,
@@ -58,8 +65,11 @@ data class CustomItem(
     val sellPrice: Double,
     val lore: List<String>,
     val cooldownTicks: Long,
-    val ability: Ability?
-)
+    val abilities: List<Ability>,
+    val potion: PotionSpec?,
+) {
+    val ability: Ability? get() = abilities.firstOrNull()
+}
 
 data class CustomKit(
     val id: String,
@@ -143,7 +153,7 @@ class ItemLoader(private val plugin: PluginManager) {
         for ((enchant, level) in custom.enchantments) meta.addEnchant(enchant, level, true)
 
         if (custom.attributes.isNotEmpty()) {
-            for (slot in EquipmentSlot.values()) {
+            for (slot in EquipmentSlot.entries) {
                 val defaults = runCatching { custom.material.asItemType()?.getDefaultAttributeModifiers(slot) }.getOrNull()
                     ?: continue
                 for (entry in defaults.entries()) {
@@ -162,6 +172,25 @@ class ItemLoader(private val plugin: PluginManager) {
             if (overridden.isNotEmpty()) {
                 meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
                 overridden.mapNotNull { it.text }.forEach { lore += messages.parse(it) }
+            }
+        }
+
+        if (custom.potion != null) {
+            if (meta !is PotionMeta) {
+                plugin.logger.warning(
+                    "Item '${custom.id}' has potion settings but its material does not support potion metadata."
+                )
+            } else {
+                val potion = custom.potion
+
+                meta.addCustomEffect(
+                    PotionEffect(
+                        potion.type,
+                        potion.durationTicks,
+                        potion.amplifier
+                    ),
+                    true
+                )
             }
         }
 
@@ -202,6 +231,26 @@ class ItemLoader(private val plugin: PluginManager) {
             enchantments[enchant] = parts.getOrNull(1)?.trim()?.toIntOrNull() ?: 1
         }
 
+        val potion = s.getConfigurationSection("potion")?.let { section ->
+            val rawType = section.getString("type")
+            val effectType = rawType
+                ?.let { mcKey(it) }
+                ?.let { Registry.EFFECT.get(it) }
+
+            if (effectType == null) {
+                plugin.logger.warning("Item '$id' has an invalid potion effect type.")
+                null
+            } else {
+                PotionSpec(
+                    type = effectType,
+                    durationTicks = parseDuration(
+                        section.getString("duration") ?: "10s"
+                    ).coerceAtLeast(1L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
+                    amplifier = section.getInt("amplifier", 0).coerceAtLeast(0)
+                )
+            }
+        }
+
         val attributes = ArrayList<AttributeSpec>()
         for (map in s.getMapList("attributes")) {
             val attribute = map["attribute"]?.toString()?.let { parseAttribute(it) }
@@ -225,9 +274,26 @@ class ItemLoader(private val plugin: PluginManager) {
             )
         }
 
-        val ability = s.getConfigurationSection("ability")?.let { parseAbility(id, it) }
+        val abilities = s.getConfigurationSection("abilities")?.let { section ->
+            section.getKeys(false).mapNotNull { key ->
+                val abilitySection = section.getConfigurationSection(key)
+                if (abilitySection == null) {
+                    plugin.logger.warning(
+                        "Item '$id' has an invalid abilities.$key entry, skipping it."
+                    )
+                    null
+                } else {
+                    parseAbility("$id (ability $key)", abilitySection)
+                }
+            }
+        } ?: listOfNotNull(
+            s.getConfigurationSection("ability")?.let {
+                parseAbility(id, it)
+            }
+        )
 
         return CustomItem(
+            potion = potion,
             id = id,
             name = s.getString("name") ?: kitName,
             material = material,
@@ -239,20 +305,18 @@ class ItemLoader(private val plugin: PluginManager) {
             sellPrice = 0.0,
             lore = s.getStringList("lore"),
             cooldownTicks = parseDuration(s.getString("cooldown")),
-            ability = ability
+            abilities = abilities
         )
     }
 
     private fun parseAbility(itemId: String, s: ConfigurationSection): Ability? {
-        val type = when (s.getString("type")?.trim()?.lowercase()) {
-            "radiuseffect" -> AbilityType.RADIUS_EFFECT
-            "targetted", "targeted" -> AbilityType.TARGETED
-            "randomizedtarget", "randomized_target", "randomized-target" -> AbilityType.RANDOMIZED_TARGET
-            else -> {
-                plugin.logger.warning("Item '$itemId' has an unknown ability type, ignoring its ability.")
-                return null
-            }
+        val rawType = s.getString("type")
+        val behavior = rawType?.let { plugin.abilities.registry.get(it) }
+        if (behavior == null) {
+            plugin.logger.warning("Item '$itemId' has an unknown ability type '${rawType ?: "(none)"}', ignoring its ability.")
+            return null
         }
+        val type = behavior.key
 
         val shape = when (s.getString("shape")?.trim()?.lowercase()) {
             null, "circular" -> AbilityShape.CIRCULAR
@@ -271,7 +335,14 @@ class ItemLoader(private val plugin: PluginManager) {
         val effects = ArrayList<EffectSpec>()
         for (line in s.getStringList("effects")) {
             val parts = line.split(':')
-            val effect = mcKey(parts[0])?.let { Registry.EFFECT.get(it) }
+            val effectName = parts[0].trim()
+
+            if (effectName.equals("fire", ignoreCase = true)) {
+                effects += EffectSpec(type = null, amplifier = 0, fire = true)
+                continue
+            }
+
+            val effect = mcKey(effectName)?.let { Registry.EFFECT.get(it) }
             if (effect == null) {
                 plugin.logger.warning("Item '$itemId' has an unknown effect '$line'.")
                 continue
@@ -322,7 +393,6 @@ class ItemLoader(private val plugin: PluginManager) {
         return ParticleSpec(particle, s.getInt("amount", 1).coerceAtLeast(1), s.getDouble("speed", 0.0))
     }
 
-    /** Accepts vanilla keys (angry_villager) and the dotted form (villager.angry). */
     private fun findParticle(raw: String): Particle? {
         val key = raw.trim().lowercase()
         val candidates = linkedSetOf(

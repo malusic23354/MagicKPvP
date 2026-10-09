@@ -18,9 +18,27 @@ class MessageManager(private val plugin: PluginManager) {
         if (!file.exists()) plugin.saveResource("messages.yml", false)
 
         val loaded = YamlConfiguration.loadConfiguration(file)
-        plugin.getResource("messages.yml")?.use { stream ->
-            loaded.setDefaults(YamlConfiguration.loadConfiguration(InputStreamReader(stream, Charsets.UTF_8)))
+        val defaults = plugin.getResource("messages.yml")?.use { stream ->
+            YamlConfiguration.loadConfiguration(InputStreamReader(stream, Charsets.UTF_8))
         }
+
+        var changed = false
+        if (loaded.contains("info")) {
+            loaded.set("info", null)
+            changed = true
+        }
+
+        if (defaults != null) {
+            for (key in defaults.getKeys(true)) {
+                if (defaults.isConfigurationSection(key)) continue
+                if (!loaded.contains(key)) {
+                    loaded.set(key, defaults.get(key))
+                    changed = true
+                }
+            }
+        }
+
+        if (changed) loaded.save(file)
         messages = loaded
     }
 
@@ -41,11 +59,5 @@ class MessageManager(private val plugin: PluginManager) {
 
     fun send(sender: CommandSender, key: String, vararg replacements: Pair<String, String>) {
         sender.sendMessage(parse(raw("prefix") + raw(key), *replacements))
-    }
-
-    fun sendList(sender: CommandSender, key: String, vararg replacements: Pair<String, String>) {
-        for (line in messages.getStringList(key)) {
-            sender.sendMessage(parse(line, *replacements))
-        }
     }
 }

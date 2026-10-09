@@ -34,13 +34,10 @@ class MagickPvpCommand(private val plugin: PluginManager) : CommandExecutor, Tab
             }
             "info" -> {
                 val meta = plugin.pluginMeta
-                messages.sendList(
-                    sender, "info",
-                    "name" to meta.name,
-                    "version" to meta.version,
-                    "author" to meta.authors.joinToString(", "),
-                    "description" to (meta.description ?: "")
-                )
+                sender.sendMessage(messages.parse("<gold>Name: <white>${meta.name}"))
+                sender.sendMessage(messages.parse("<gold>Version: <white>${meta.version}"))
+                sender.sendMessage(messages.parse("<gold>Author: <white>${meta.authors.joinToString(", ")}"))
+                sender.sendMessage(messages.parse("<gold>Description: <white>${meta.description.orEmpty()}"))
             }
             "menu" -> {
                 val player = sender as? Player ?: return playerOnly(sender)
