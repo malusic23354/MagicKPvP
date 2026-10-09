@@ -45,7 +45,7 @@ class PluginManager : JavaPlugin() {
         if (!economy.available) {
             logger.warning("No Vault economy provider found yet, buying and selling kits will not work until one is loaded.")
         }
-        logger.info("Plugin Is ON!")
+        logger.info("Plugin has been enabled!")
     }
 
     override fun onDisable() {

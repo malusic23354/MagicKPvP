@@ -1,38 +1,32 @@
 # MagicKPvP
 
-MagicKPvP is a Paper Minecraft PvP plugin for configurable multi-item kits, custom item abilities, kit purchasing, and an in-game kit menu. It integrates with Vault for economy support.
+MagicKPvP is a Paper Minecraft PvP plugin for configurable kits, custom item abilities, kit purchasing, and an in-game kit selection menu. It uses Vault to connect to the server's economy provider.
 
 ## Features
 
-- Configure kits containing multiple items, including armor, weapons, and utility items.
-- Configure item names, materials, stack amounts, lore, enchantments, attributes, and abilities.
-- Automatically equip kit armor when a player selects a kit.
-- Replace the active loadout when switching kits.
-- Clear a player's inventory, armor, and off-hand on death or disconnect; remove inventory items from death drops.
-- Configure abilities, particles, commands, activation messages, effect durations, and per-item cooldowns.
-- Activate custom item abilities by right-clicking the item.
-- Buy, sell, and select kits through commands or the kit menu.
-- Configure a kit's menu icon with `displayitem`.
-- Preview unowned kits in a read-only inventory menu.
-- Customize messages and menu appearance, and reload configuration without restarting the server.
+- Define custom kit items in `items.yml`.
+- Configure item names, materials, stack amounts, enchantments, attributes, lore, and buy/sell prices.
+- Configure abilities, particles, commands, activation messages, and effect durations.
+- Activate abilities by right-clicking the custom item.
+- Set per-player, per-item cooldowns with readable duration strings such as `10s`.
+- Buy, sell, and select kits using commands or the kit menu.
+- Customize plugin messages and menu appearance.
+- Reload configuration files without restarting the server.
 
 ## Requirements
 
-- A Paper server compatible with the Minecraft API version declared in the plugin metadata (`1.21.11` in the current source).
+- A compatible Paper server. The plugin metadata currently declares Minecraft API version `1.21.11`; use a server/build compatible with that API version.
 - [Vault](https://www.spigotmc.org/resources/vault.34315/).
-- A Vault-compatible economy plugin for kit purchasing and selling.
-- Kotlin standard library `2.2.20` is declared as a plugin runtime library.
+- An economy plugin that hooks into Vault if you want kit purchasing and selling to use an economy.
 
 ## Installation
 
-1. Build the plugin JAR using the project's Gradle build setup.
-2. Install Vault and a Vault-compatible economy provider on your Paper server.
-3. Put the built `MagicKPvP` JAR in the server's `plugins/` directory.
-4. Start the server to generate the configuration files.
+1. Build the plugin JAR from the project source using its Gradle project/build setup.
+2. Install Vault and an economy provider on your Paper server.
+3. Copy the built `MagicKPvP` JAR into the server's `plugins/` directory.
+4. Start the server once to generate the configuration files.
 5. Edit `plugins/MagicKPvP/items.yml`, `config.yml`, and `messages.yml` as needed.
-6. Run `/magickpvp reload` or restart the server to apply configuration changes.
-
-The source archive may not include a prebuilt JAR. Build the plugin before installing it.
+6. Run `/magickpvp reload` or restart the server to load your changes.
 
 ## Commands
 
@@ -43,7 +37,7 @@ The main command is `/magickpvp`, with `/mkp` as an alias.
 | `/magickpvp menu` | Open the kit selection menu | `magickpvp.menu` |
 | `/magickpvp select <kit>` | Select a kit you own | `magickpvp.select` |
 | `/magickpvp buy <kit>` | Buy a kit | `magickpvp.buy` |
-| `/magickpvp sell <kit>` | Sell a purchased kit | `magickpvp.sell` |
+| `/magickpvp sell <kit>` | Sell a previously purchased kit | `magickpvp.sell` |
 | `/magickpvp info` | Show plugin information | `magickpvp.info` |
 | `/magickpvp reload` | Reload plugin configuration | `magickpvp.reload` |
 
@@ -51,26 +45,90 @@ The main command is `/magickpvp`, with `/mkp` as an alias.
 
 | Permission | Default | Description |
 | --- | --- | --- |
-| `magickpvp.command` | Everyone | Main command permission |
+| `magickpvp.command` | Everyone | Main command permission declared in `plugin.yml` |
 | `magickpvp.menu` | Everyone | Open the kit menu |
 | `magickpvp.select` | Everyone | Select owned kits |
 | `magickpvp.buy` | Everyone | Buy kits |
 | `magickpvp.sell` | Everyone | Sell purchased kits |
 | `magickpvp.info` | Everyone | View plugin information |
 | `magickpvp.reload` | Operators | Reload configurations |
-| `magickpvp.kit.*` | Not granted by default | Grants ownership of all kits |
-| `magickpvp.kit.<id>` | Not granted by default | Grants ownership of a specific kit ID |
-| `magickpvp.admin` | Operators | Admin permission group as declared by the plugin |
+| `magickpvp.kit.*` | Nobody | Grants ownership of all kits |
+| `magickpvp.kit.<id>` | Nobody unless granted | Grants ownership of a specific kit ID |
+| `magickpvp.admin` | Operators | Grants the plugin's listed admin permissions, including all-kit ownership |
 
 ## Configuration files
 
-- `config.yml` — menu enablement, size, pages, decoration, and kit menu entries, including `displayitem`.
-- `items.yml` — kit definitions and their nested item pieces, prices, abilities, and cooldowns.
-- `messages.yml` — command feedback, menu labels, and cooldown messages.
+- `config.yml` — enables/disables the menu and configures its size, pages, decoration, and kit-menu display settings.
+- `items.yml` — defines kit items and their properties, prices, and abilities. The YAML key (for example, `kit1`) is the kit/item ID used by commands.
+- `messages.yml` — controls messages shown by the plugin, including command feedback, menu labels, and cooldown feedback.
 
-## Multi-item kits (`items.yml`)
+### Example item with a cooldown
 
-Each top-level key is a kit ID. Kit-level settings such as `name` and `price` belong at the top level. Each item inside the kit is configured under its own key, such as `helmet`, `chestplate`, `leggings`, `boots`, `sword`, or `snowball`.
+```yaml
+kit1:
+  name: '<red>Curse Blade'
+  material: NETHERITE_SWORD
+  glow: true
+  cooldown: 10s
+  price:
+    buy: 1000
+    sell: 100
+  lore:
+    - '<white>Right-click to curse nearby players.'
+  ability:
+    type: radiusEffect
+    shape: circular
+    width: 3
+    particle:
+      type: angry_villager
+      amount: 6
+      speed: 0
+    duration: 5s
+    effects:
+      - 'slowness:2'
+```
+
+`cooldown` is optional. If omitted, or set to `0s`, the item has no cooldown. Supported duration suffixes are:
+
+- `ms` — milliseconds
+- `s` — seconds
+- `t` — Minecraft ticks (20 ticks = 1 second)
+- `m` — minutes
+- `h` — hours
+
+Examples: `500ms`, `10s`, `20t`, `2m`, `1h`.
+
+Cooldowns are tracked separately for each player and item ID. A cooldown begins when the custom item is right-clicked, and an attempt during the cooldown displays the configured cooldown message. Cooldowns are cleared when the plugin is stopped or its configuration is reloaded; they are not persisted across restarts.
+
+### Ability types
+
+The current source supports these ability type names:
+
+- `radiusEffect` — activates a radius effect around the player, with configurable shape, width, particles, duration, potion effects, and activation messages.
+- `targetted` — projectile/target ability configuration, including particles, commands, and activation messages. The spelling `targetted` is the value used by the current configuration parser.
+
+Check the example `items.yml` shipped with the source for the exact structure and supported fields.
+
+## Message placeholders
+
+The cooldown message in `messages.yml` can use `{item}` and `{time}`:
+
+```yaml
+cooldown: "<red>{item} is on cooldown for {time}s."
+```
+
+`{time}` is the remaining time rounded up to whole seconds. Messages support the MiniMessage-style formatting used in the default configuration, such as `<red>`, `<gold>`, and `<gray>`.
+
+## Troubleshooting
+
+- **Buying/selling does not work:** make sure Vault and a Vault-compatible economy plugin are installed and enabled.
+- **The menu does not open:** check `enablemenu` in `config.yml` and the player's `magickpvp.menu` permission.
+- **A custom item has no ability:** check the item ID and ability YAML structure in `items.yml`, then run `/magickpvp reload` and inspect the server console for configuration errors.
+- **Cooldowns do not appear:** verify that `cooldown` is nested under the correct item ID and uses a supported duration suffix.
+
+## Multi-item kits and previews
+
+Each top-level entry in `items.yml` is now a purchasable kit. Define the kit's display name and price at the top level, then define one section per item using keys such as `helmet`, `chestplate`, `leggings`, `boots`, `sword`, or `snowball`. Each item section supports its own material, name, amount, lore, enchantments, attributes, ability, and cooldown.
 
 ```yaml
 warrior:
@@ -78,33 +136,20 @@ warrior:
   price:
     buy: 1500
     sell: 250
-
   helmet:
     name: '<gold>Warrior Helmet'
     material: NETHERITE_HELMET
     enchantments:
       - 'protection:4'
-
   chestplate:
     name: '<gold>Warrior Chestplate'
     material: NETHERITE_CHESTPLATE
     enchantments:
       - 'protection:4'
-
-  leggings:
-    name: '<gold>Warrior Leggings'
-    material: NETHERITE_LEGGINGS
-
-  boots:
-    name: '<gold>Warrior Boots'
-    material: NETHERITE_BOOTS
-
   sword:
     name: '<red>Warrior Sword'
     material: NETHERITE_SWORD
     cooldown: 10s
-    lore:
-      - '<white>Right-click to use the ability.'
     ability:
       type: radiusEffect
       shape: circular
@@ -114,11 +159,11 @@ warrior:
         - 'slowness:2'
 ```
 
-Selecting a kit grants all configured pieces. Armor items are automatically equipped into their matching armor slots; remaining items go into the player's inventory. If the inventory cannot fit all remaining items, overflow items are dropped at the player's location.
+Selecting a kit grants every item section in that kit. Item cooldowns apply to the individual item within the kit.
 
-### Kit menu display item (`config.yml`)
+### Kit menu display item
 
-Use `displayitem` to choose which item piece represents the kit in the main menu. Its value must match a nested item key inside that kit.
+In `config.yml`, each `menu.kits` entry can specify `displayitem`. Its value must match one of the item section keys inside that kit. This item is used as the kit's icon in the main menu.
 
 ```yaml
 menu:
@@ -129,63 +174,10 @@ menu:
       displayitem: sword
 ```
 
-Right-clicking a kit the player does not own opens a read-only preview of the kit's items. The preview uses the main menu's size and decoration style, and items cannot be taken or moved. Left-clicking an unowned kit attempts to purchase it. Right-clicking an owned kit follows the configured/current sell behavior.
+Right-clicking a kit that the player does not own opens a read-only preview inventory showing the kit's items. The preview uses the same inventory size and decoration border as the main menu, and items cannot be moved or taken. Left-clicking an unowned kit still attempts to purchase it. Right-clicking an owned kit retains the existing sell behavior.
 
-## Item cooldowns
+## Kit loadouts, auto-equip, and inventory cleanup
 
-Cooldowns are optional and are configured on an individual item piece. If omitted or set to `0s`, the item has no cooldown.
+Selecting a kit now replaces the player's current inventory with that kit's loadout. Armor pieces are automatically equipped into the helmet, chestplate, leggings, and boots slots. Other items are placed in the normal inventory; any items that do not fit are dropped at the player's location.
 
-```yaml
-sword:
-  name: '<red>Curse Blade'
-  material: NETHERITE_SWORD
-  cooldown: 10s
-```
-
-Supported duration suffixes:
-
-- `ms` — milliseconds
-- `s` — seconds
-- `t` — Minecraft ticks (20 ticks = 1 second)
-- `m` — minutes
-- `h` — hours
-
-Examples: `500ms`, `10s`, `20t`, `2m`, `1h`. Cooldowns are tracked per player and item ID. Using an item while its cooldown is active displays the configured cooldown message. Cooldowns are not persisted across server restarts and are cleared when the plugin is stopped or its configuration is reloaded.
-
-In `messages.yml`, the cooldown message can use `{item}` and `{time}` placeholders:
-
-```yaml
-cooldown: "<red>{item} is on cooldown for {time}s."
-```
-
-`{time}` is the remaining time rounded up to whole seconds. Messages support MiniMessage-style formatting such as `<red>`, `<gold>`, and `<gray>`.
-
-## Ability types
-
-The current source supports these ability type names:
-
-- `radiusEffect` — applies configured effects around the player, with options for shape, width, particles, duration, and potion effects.
-- `targetted` — projectile/target ability configuration, including particles, commands, and activation messages. The spelling `targetted` is the value expected by the current parser.
-
-Use the sample `items.yml` and the configuration parser as the reference for exact supported fields.
-
-## Loadout and inventory cleanup behavior
-
-- Selecting a kit replaces the player's current inventory/loadout before granting the newly selected kit.
-- Armor pieces are auto-equipped; other items are put in the regular inventory.
-- On death, the plugin clears the player's inventory, armor, and off-hand, and removes those items from death drops.
-- On disconnect, the plugin clears the player's inventory, armor, and off-hand.
-
-**Important:** cleanup clears the entire inventory, not only items created by MagicKPvP. This behavior is intended for kit-based PvP servers. Do not use it unchanged on a survival server where players need to keep personal items.
-
-## Troubleshooting
-
-- **Buying or selling does not work:** ensure Vault and a Vault-compatible economy plugin are installed and enabled.
-- **The menu does not open:** check the menu enable setting in `config.yml` and the player's `magickpvp.menu` permission.
-- **A custom ability does not activate:** check the nested item key and ability YAML structure, reload the plugin, and inspect the server console for configuration errors.
-- **The cooldown does not appear:** ensure `cooldown` is nested under the correct item piece and uses a supported duration suffix.
-- **A kit icon is missing or incorrect:** ensure `displayitem` matches an item key defined inside that kit.
-
-## License
-
-This project is Opensource for usage under condition to mention the main contributor!
+The plugin also clears the player's inventory, armor, and off-hand when they die or leave the server. Kit items are removed from death drops. This is intended for kit-based PvP gameplay; **the cleanup clears the entire inventory**, not only MagicKPvP items.

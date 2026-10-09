@@ -90,3 +90,31 @@ levitation_kit:
           message: '<aqua>{inflictor} lifted you off the ground!'
         - for: inflictor
           message: '<green>You hit {target}!'
+
+randomized_kit:
+  name: '<light_purple>Chaos Kit'
+  price:
+    buy: 1200
+    sell: 120
+  chaos_wand:
+    name: '<light_purple>Chaos Wand'
+    material: BLAZE_ROD
+    glow: true
+    cooldown: 15s
+    lore:
+      - '<white>Right-click to curse a random nearby player.'
+    ability:
+      type: randomizedtarget
+      range: 12
+      commands:
+        - 'effect give @target minecraft:blindness 4 0 true'
+      particle:
+        type: witch
+        amount: 12
+        speed: 0.1
+      activationmessage:
+        - for: target
+          message: '<light_purple>Chaos magic has targeted you!'
+        - for: inflictor
+          message: '<green>You randomly targeted {target}!'
+

@@ -17,7 +17,7 @@ import org.bukkit.persistence.PersistentDataType
 import org.bukkit.potion.PotionEffectType
 import java.io.File
 
-enum class AbilityType { RADIUS_EFFECT, TARGETED }
+enum class AbilityType { RADIUS_EFFECT, TARGETED, RANDOMIZED_TARGET }
 enum class AbilityShape { CIRCULAR, BOX, SPHERE }
 enum class MessageReceiver { TARGET, INFLICTOR }
 
@@ -38,6 +38,7 @@ data class Ability(
     val type: AbilityType,
     val shape: AbilityShape,
     val width: Double,
+    val range: Double,
     val particle: ParticleSpec?,
     val durationTicks: Long,
     val effects: List<EffectSpec>,
@@ -171,7 +172,6 @@ class ItemLoader(private val plugin: PluginManager) {
         return stack
     }
 
-    /** A plain icon (used for kits the player does not own) carrying only the kit name. */
     fun icon(custom: CustomItem, material: Material): ItemStack {
         val stack = ItemStack(material)
         val meta = stack.itemMeta
@@ -247,6 +247,7 @@ class ItemLoader(private val plugin: PluginManager) {
         val type = when (s.getString("type")?.trim()?.lowercase()) {
             "radiuseffect" -> AbilityType.RADIUS_EFFECT
             "targetted", "targeted" -> AbilityType.TARGETED
+            "randomizedtarget", "randomized_target", "randomized-target" -> AbilityType.RANDOMIZED_TARGET
             else -> {
                 plugin.logger.warning("Item '$itemId' has an unknown ability type, ignoring its ability.")
                 return null
@@ -264,6 +265,7 @@ class ItemLoader(private val plugin: PluginManager) {
         }
 
         val width = s.getDouble("width", 3.0).takeIf { it > 0.0 } ?: 3.0
+        val range = s.getDouble("range", 10.0).takeIf { it > 0.0 } ?: 10.0
         val particle = s.getConfigurationSection("particle")?.let { parseParticle(itemId, it) }
 
         val effects = ArrayList<EffectSpec>()
@@ -297,6 +299,7 @@ class ItemLoader(private val plugin: PluginManager) {
             type = type,
             shape = shape,
             width = width,
+            range = range,
             particle = particle,
             durationTicks = parseDuration(s.getString("duration")),
             effects = effects,
@@ -319,6 +322,7 @@ class ItemLoader(private val plugin: PluginManager) {
         return ParticleSpec(particle, s.getInt("amount", 1).coerceAtLeast(1), s.getDouble("speed", 0.0))
     }
 
+    /** Accepts vanilla keys (angry_villager) and the dotted form (villager.angry). */
     private fun findParticle(raw: String): Particle? {
         val key = raw.trim().lowercase()
         val candidates = linkedSetOf(

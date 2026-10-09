@@ -119,8 +119,7 @@ class KitManager(private val plugin: PluginManager) : Listener {
     }
 
     fun buy(player: Player, id: String): KitResult {
-        val kit = plugin.itemLoader.get(id)
-        if (kit == null) return fail(player, KitResult.UNKNOWN_KIT, "unknown-kit")
+        val kit = plugin.itemLoader.get(id) ?: return fail(player, KitResult.UNKNOWN_KIT, "unknown-kit")
         if (owns(player, kit.id)) return fail(player, KitResult.ALREADY_OWNED, "already-owned")
         if (!player.hasPermission("magickpvp.buy")) return fail(player, KitResult.NO_PERMISSION, "no-permission")
         if (!plugin.economy.available) return fail(player, KitResult.NO_ECONOMY, "no-economy")
@@ -143,7 +142,6 @@ class KitManager(private val plugin: PluginManager) : Listener {
         val kit = plugin.itemLoader.get(id) ?: return fail(player, KitResult.UNKNOWN_KIT, "unknown-kit")
         if (!player.hasPermission("magickpvp.sell")) return fail(player, KitResult.NO_PERMISSION, "no-permission")
         if (!owns(player, kit.id)) return fail(player, KitResult.NOT_OWNED, "no-ownership")
-        // Kits granted by permission were never bought, so there is nothing to sell.
         if (!isPurchased(player, kit.id)) return fail(player, KitResult.CANNOT_SELL, "cannot-sell")
         if (!plugin.economy.available) return fail(player, KitResult.NO_ECONOMY, "no-economy")
 

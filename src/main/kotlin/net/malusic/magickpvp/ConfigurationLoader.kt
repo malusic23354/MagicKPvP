@@ -24,7 +24,6 @@ class ConfigurationLoader(private val plugin: PluginManager) {
         private set
     var menuSize: Int = 54
         private set
-
     var menuPages: Int = 1
         private set
     var autoFill: Boolean = true

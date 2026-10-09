@@ -80,9 +80,13 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         }
 
         val ability = custom.ability ?: return
-        if (ability.type == AbilityType.RADIUS_EFFECT) {
-            val duration = if (ability.durationTicks > 0) ability.durationTicks else Long.MAX_VALUE
-            active[player.uniqueId] = ActiveRadius(itemId, ability, duration)
+        when (ability.type) {
+            AbilityType.RADIUS_EFFECT -> {
+                val duration = if (ability.durationTicks > 0) ability.durationTicks else Long.MAX_VALUE
+                active[player.uniqueId] = ActiveRadius(itemId, ability, duration)
+            }
+            AbilityType.RANDOMIZED_TARGET -> executeRandomizedTarget(player, ability)
+            AbilityType.TARGETED -> Unit
         }
     }
 
@@ -174,6 +178,35 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
                 }
             }
             world.spawnParticle(spec.particle, point, 1, 0.0, 0.0, 0.0, spec.speed)
+        }
+    }
+
+    private fun executeRandomizedTarget(inflictor: Player, ability: Ability) {
+        val rangeSquared = ability.range * ability.range
+        val candidates = inflictor.world.players.filter { target ->
+            target.uniqueId != inflictor.uniqueId &&
+                !target.isDead &&
+                target.gameMode != GameMode.SPECTATOR &&
+                target.location.distanceSquared(inflictor.location) <= rangeSquared
+        }
+        val target = candidates.randomOrNull() ?: return
+
+        for (command in ability.commands) {
+            val line = command.trim().removePrefix("/")
+                .replace("@target", target.name)
+                .replace("@inflictor", inflictor.name)
+            if (line.isNotBlank()) {
+                plugin.server.dispatchCommand(plugin.server.consoleSender, line)
+            }
+        }
+
+        sendActivationMessages(ability, target, inflictor)
+        ability.particle?.let {
+            target.world.spawnParticle(
+                it.particle,
+                target.boundingBox.center.toLocation(target.world),
+                it.amount, 0.3, 0.5, 0.3, it.speed
+            )
         }
     }
 
