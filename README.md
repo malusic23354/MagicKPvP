@@ -7,7 +7,6 @@ MagicKPvP is a Paper Minecraft PvP plugin for configurable kits, custom item abi
 - Define custom kit items in `items.yml`.
 - Configure item names, materials, stack amounts, enchantments, attributes, lore, and buy/sell prices.
 - Configure abilities, particles, commands, activation messages, and effect durations.
-- Activate abilities by right-clicking the custom item.
 - Set per-player, per-item cooldowns with readable duration strings such as `10s`.
 - Buy, sell, and select kits using commands or the kit menu.
 - Customize plugin messages and menu appearance.
@@ -18,6 +17,10 @@ MagicKPvP is a Paper Minecraft PvP plugin for configurable kits, custom item abi
 - A compatible Paper server. The plugin metadata currently declares Minecraft API version `1.21.11`; use a server/build compatible with that API version.
 - [Vault](https://www.spigotmc.org/resources/vault.34315/).
 - An economy plugin that hooks into Vault if you want kit purchasing and selling to use an economy.
+
+### SOFT Requirements
+
+- Worldguard & Luckperms
 
 ## Installation
 
@@ -62,50 +65,15 @@ The main command is `/magickpvp`, with `/mkp` as an alias.
 - `items.yml` — defines kit items and their properties, prices, and abilities. The YAML key (for example, `kit1`) is the kit/item ID used by commands.
 - `messages.yml` — controls messages shown by the plugin, including command feedback, menu labels, and cooldown feedback.
 
-### Example item with a cooldown
-
-```yaml
-kit1:
-  name: '<red>Curse Blade'
-  material: NETHERITE_SWORD
-  glow: true
-  cooldown: 10s
-  price:
-    buy: 1000
-    sell: 100
-  lore:
-    - '<white>Right-click to curse nearby players.'
-  ability:
-    type: radiusEffect
-    shape: circular
-    width: 3
-    particle:
-      type: angry_villager
-      amount: 6
-      speed: 0
-    duration: 5s
-    effects:
-      - 'slowness:2'
-```
-
-`cooldown` is optional. If omitted, or set to `0s`, the item has no cooldown. Supported duration suffixes are:
-
-- `ms` — milliseconds
-- `s` — seconds
-- `t` — Minecraft ticks (20 ticks = 1 second)
-- `m` — minutes
-- `h` — hours
-
-Examples: `500ms`, `10s`, `20t`, `2m`, `1h`.
-
-Cooldowns are tracked separately for each player and item ID. A cooldown begins when the custom item is right-clicked, and an attempt during the cooldown displays the configured cooldown message. Cooldowns are cleared when the plugin is stopped or its configuration is reloaded; they are not persisted across restarts.
-
 ### Ability types
 
 The current source supports these ability type names:
 
 - `radiusEffect` — activates a radius effect around the player, with configurable shape, width, particles, duration, potion effects, and activation messages.
-- `targetted` — projectile/target ability configuration, including particles, commands, and activation messages. The spelling `targetted` is the value used by the current configuration parser.
+- `projected` — projectile/target ability configuration, including particles, commands, and activation messages.
+- `randomizedtarget` — picks a random person in the range you configure for the item and have it execute an action.
+- `flight` — flight enables for the target when they click the item for a certain amount of time.
+- `potion_effect` — a constant effect as long as the player has the item equipped or handheld.
 
 Check the example `items.yml` shipped with the source for the exact structure and supported fields.
 
@@ -163,7 +131,7 @@ Selecting a kit grants every item section in that kit. Item cooldowns apply to t
 
 ### Kit menu display item
 
-In `config.yml`, each `menu.kits` entry can specify `displayitem`. Its value must match one of the item section keys inside that kit. This item is used as the kit's icon in the main menu.
+In `config.yml`, each `menu.kits` entry can specify `displayitem`. Its value doesn't have to match one of the item section keys inside that kit. This item is used as the kit's icon in the main menu.
 
 ```yaml
 menu:
