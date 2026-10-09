@@ -38,7 +38,7 @@ tasks {
 
     shadowJar {
         archiveClassifier.set("")
-        relocate("com.zaxxer.hikari", "net.malusic.yourplugin.libs.hikari")
+        relocate("com.zaxxer.hikari", "net.malusic.magickpvp.libs.hikari")
     }
 
     compileJava {
