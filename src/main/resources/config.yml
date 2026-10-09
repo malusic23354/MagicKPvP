@@ -3,9 +3,13 @@
 # Storage types: sqlite or mysql more in the future!                                      #
 ###########################################################################################
 enablemenu: true
+
 materialnotowned: GRAY_DYE
+
 lorenotowned: '<gray>Click to buy for {price}!'
+
 lorebought: '<gray>Click to select this kit!'
+
 storage:
   type: sqlite
   sqlite:
@@ -18,6 +22,7 @@ storage:
     password: ""
     use-ssl: false
     pool-size: 10
+
 menu:
   size: 27
   pages: 1
@@ -28,3 +33,28 @@ menu:
       slot: 10
       page: 1
       displayitem: sword
+
+protect-kit-items: true
+
+rewards:
+  kill:
+    coins: 100.0
+    xp: 10
+  damage-share:
+    enabled: true
+    threshold: 0.5
+    window-seconds: 60
+    coins: 50.0
+    xp: 5
+
+ranks:
+  enabled: false
+  track: ""
+  groups:
+    default: 0
+    vip: 1000
+    mvp: 5000
+
+combat:
+  tag-seconds: 15
+  block-kit-switch: true
