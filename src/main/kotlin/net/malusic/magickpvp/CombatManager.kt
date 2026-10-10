@@ -14,6 +14,12 @@ interface AbilityZoneCheck {
     fun abilitiesAllowed(player: Player): Boolean
 }
 
+fun EntityDamageByEntityEvent.attacker(): Player? = when (val source = damager) {
+    is Player -> source
+    is Projectile -> source.shooter as? Player
+    else -> null
+}
+
 class CombatManager(private val plugin: PluginManager) : Listener {
 
     private val tagged = HashMap<UUID, Long>()
@@ -39,11 +45,7 @@ class CombatManager(private val plugin: PluginManager) : Listener {
         if (seconds <= 0) return
 
         val victim = event.entity as? Player ?: return
-        val attacker = when (val damager = event.damager) {
-            is Player -> damager
-            is Projectile -> damager.shooter as? Player
-            else -> null
-        } ?: return
+        val attacker = event.attacker() ?: return
         if (attacker.uniqueId == victim.uniqueId) return
 
         val until = System.currentTimeMillis() + seconds * 1000L

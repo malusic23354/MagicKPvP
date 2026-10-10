@@ -1,90 +1,569 @@
-example_kit:
-  name: "<dark_purple>Example Kit"
-
+pyromancer:
+  name: "<gold>Pyromancer"
   price:
-    buy: 1000
-    sell: 550
+    buy: 2500
+    sell: 1250
 
-  sword:
-    name: "<dark_purple>Ability Sword"
-    material: NETHERITE_SWORD
-    amount: 1
+  staff:
+    name: "<gold>Inferno Staff"
+    material: BLAZE_ROD
     glow: true
-
-    # Format: ENCHANTMENT:LEVEL
-    enchantments:
-      - sharpness:4
-      - unbreaking:3
-      - mending:1
-
-    # Item attributes
-    attributes:
-      - attribute: attack_damage
-        amount: 15
-        operation: add_number
-        slot: mainhand
-        type: override
-        text: "<gold>+15 Attack Damage"
-
     lore:
-      - "<gray>An example custom item."
-      - "<light_purple>Contains multiple abilities."
-
-    # Item cooldown, applied by your ability handler
-    cooldown: 30s
-
-    # Item potion metadata (for potion-compatible materials)
-    potion:
-      type: speed
-      duration: 30s
-      amplifier: 1
-
-    # Named ability sections
+      - "<gray>Hold it to burn everyone around you."
+    cooldown: 20s
     abilities:
-
-      flight:
-        type: flight
-        duration: 10s
-
-      potion_boost:
-        type: potion_effect
-        duration: 15s
-        effects:
-          - speed:2
-          - strength:1
-
-      radius_attack:
+      inferno_aura:
         type: radiuseffect
         shape: circular
         width: 5
-        range: 10
-        duration: 3s
+        duration: 6s
         particle:
           type: flame
-          amount: 20
-          speed: 0.1
+          amount: 25
+          speed: 0.02
         effects:
-          - slowness:2
+          - slowness:1
           - weakness:1
           - fire
         activationmessage:
           - for: target
-            message: "<red>You were hit by a radius ability!"
+            message: "<red>You are standing in the Inferno Aura!"
           - for: inflictor
-            message: "<green>Your radius ability activated!"
+            message: "<gold>Your Inferno Aura is burning."
 
-      projectile_attack: #this is made for projectiles.
-        type: projected
-        range: 15
-        duration: 5s
+  sword:
+    name: "<gold>Ember Blade"
+    material: DIAMOND_SWORD
+    enchantments:
+      - sharpness:3
+      - fire_aspect:2
+      - unbreaking:3
+
+  chestplate:
+    name: "<gold>Cinder Chestplate"
+    material: IRON_CHESTPLATE
+    enchantments:
+      - protection:3
+      - fire_protection:4
+
+  boots:
+    name: "<gold>Ashwalker Boots"
+    material: IRON_BOOTS
+    lore:
+      - "<gray>Passive: speed and fire resistance."
+    enchantments:
+      - protection:2
+    abilities:
+      ashwalker:
+        type: potion_effect
         effects:
-          - poison:1
-        commands:
-          - "say Targeted ability activated"
+          - speed:2
+          - fire_resistance:1
 
-      random_target:
+stormcaller:
+  name: "<aqua>Stormcaller"
+  price:
+    buy: 3000
+    sell: 1500
+
+  rod:
+    name: "<aqua>Thunder Staff"
+    material: STICK
+    glow: true
+    lore:
+      - "<gray>Right click to arc lightning between enemies."
+    cooldown: 12s
+    abilities:
+      arc:
+        type: chain_lightning
+        mode: auto
+        range: 25
+        aim: 1.0
+        jumps: 5
+        jump-range: 7
+        damage: 6
+        falloff: 0.8
+        hop-delay: 4t
+        lightning: true
+        line-of-sight: true
+        affect-mobs: false
+        effect-duration: 3s
+        effects:
+          - slowness:2
+        particle:
+          type: electric_spark
+          amount: 16
+          speed: 0.0
+
+  feather:
+    name: "<aqua>Storm Step"
+    material: FEATHER
+    lore:
+      - "<gray>Dash forward and hit anyone you pass through."
+    cooldown: 8s
+    abilities:
+      step:
+        type: dash
+        power: 2.0
+        lift: 0.25
+        horizontal: true
+        duration: 8t
+        hit-damage: 4
+        hit-radius: 2
+        hit-knockback: 0.9
+        affect-mobs: false
+        invulnerable: true
+        effect-duration: 2s
+        self-effects:
+          - speed:2:3s
+        effects:
+          - slowness:1:2s
+        particle:
+          type: cloud
+          amount: 4
+          speed: 0.01
+
+  sword:
+    name: "<aqua>Spark Blade"
+    material: IRON_SWORD
+    enchantments:
+      - sharpness:2
+      - unbreaking:2
+
+  chestplate:
+    name: "<aqua>Stormweave Chestplate"
+    material: CHAINMAIL_CHESTPLATE
+    enchantments:
+      - protection:3
+
+shadow:
+  name: "<dark_gray>Shadow Assassin"
+  price:
+    buy: 3500
+    sell: 1750
+
+  dagger:
+    name: "<dark_gray>Nightfang"
+    material: IRON_SWORD
+    glow: true
+    lore:
+      - "<gray>Right click to rewind a few seconds."
+      - "<gray>Only records while held in hand."
+    cooldown: 25s
+    enchantments:
+      - sharpness:3
+      - unbreaking:3
+    abilities:
+      rewind:
+        type: rewind
+        seconds: 4s
+        cross-world: false
+        restore-health: true
+        only-heal: true
+        effect-duration: 3s
+        self-effects:
+          - speed:2:3s
+        particle:
+          type: reverse_portal
+          amount: 40
+          speed: 0.1
+
+  mirror:
+    name: "<dark_gray>Mirror Shard"
+    material: ECHO_SHARD
+    lore:
+      - "<gray>Leave a decoy behind and vanish."
+    cooldown: 20s
+    abilities:
+      clone:
+        type: decoy
+        lifetime: 8s
+        health: 6
+        show-name: true
+        name: "<gray>{owner}"
+        glow: false
+        effect-duration: 3s
+        effects:
+          - blindness:1:3s
+        self-effects:
+          - invisibility:1:4s
+          - speed:2:4s
+        particle:
+          type: smoke
+          amount: 20
+          speed: 0.05
+
+  chestplate:
+    name: "<dark_red>Bloodstained Chestplate"
+    material: IRON_CHESTPLATE
+    lore:
+      - "<gray>Passive: every kill stacks speed and strength."
+    enchantments:
+      - protection:2
+    abilities:
+      bloodlust:
+        type: bloodlust
+        duration: 8s
+        max-stacks: 4
+        amplifier-per-stack: 1
+        heal: 4
+        message: "<red>Bloodlust x{stacks} <gray>({victim})"
+        effects:
+          - speed:1
+          - strength:1
+        particle:
+          type: damage_indicator
+          amount: 10
+          speed: 0.1
+
+  boots:
+    name: "<dark_gray>Silent Boots"
+    material: LEATHER_BOOTS
+    enchantments:
+      - feather_falling:4
+
+summoner:
+  name: "<green>Summoner"
+  price:
+    buy: 3000
+    sell: 1500
+
+  whistle:
+    name: "<green>Pack Whistle"
+    material: BONE
+    glow: true
+    lore:
+      - "<gray>Call wolves that fight for you."
+    cooldown: 30s
+    abilities:
+      wolves:
+        type: guardians
+        entity: wolf
+        amount: 3
+        lifetime: 20s
+        health: 20
+        damage: 4
+        speed: 0.35
+        name: "<gray>{owner}'s Wolf"
+        target-mobs: false
+        follow-distance: 6
+        replace: true
+        particle:
+          type: poof
+          amount: 8
+          speed: 0.02
+
+  idol:
+    name: "<green>Healing Idol"
+    material: HEART_OF_THE_SEA
+    lore:
+      - "<gray>Plants a totem that heals you over time."
+    cooldown: 40s
+    abilities:
+      healing_totem:
+        type: totem
+        material: TOTEM_OF_UNDYING
+        small: false
+        name: "<green>{owner}'s Totem"
+        lifetime: 15s
+        health: 30
+        radius: 6
+        interval: 20t
+        affects: owner
+        heal: 1
+        damage: 0
+        effect-duration: 3s
+        effects:
+          - regeneration:2:3s
+        particle:
+          type: happy_villager
+          amount: 24
+          speed: 0.0
+
+  sword:
+    name: "<green>Thornwood Blade"
+    material: IRON_SWORD
+    enchantments:
+      - sharpness:2
+      - unbreaking:2
+
+  chestplate:
+    name: "<green>Barkweave Chestplate"
+    material: CHAINMAIL_CHESTPLATE
+    enchantments:
+      - protection:3
+      - thorns:1
+
+  leggings:
+    name: "<green>Barkweave Leggings"
+    material: CHAINMAIL_LEGGINGS
+    enchantments:
+      - protection:3
+
+voidwalker:
+  name: "<dark_purple>Voidwalker"
+  price:
+    buy: 5000
+    sell: 2500
+
+  singularity:
+    name: "<dark_purple>Singularity"
+    material: NETHER_STAR
+    glow: true
+    lore:
+      - "<gray>Aim at the ground to drag enemies in."
+    cooldown: 35s
+    abilities:
+      collapse:
+        type: blackhole
+        range: 18
+        radius: 7
+        strength: 0.4
+        burst: 1.6
+        damage: 2
+        affect-owner: false
+        affect-mobs: false
+        duration: 4s
+        effect-duration: 2s
+        effects:
+          - slowness:2
+        particle:
+          type: portal
+          amount: 36
+          speed: 0.0
+
+  wings:
+    name: "<dark_purple>Void Wings"
+    material: FEATHER
+    lore:
+      - "<gray>Grants flight for a short time."
+    cooldown: 25s
+    abilities:
+      glide:
+        type: flight
+        duration: 8s
+
+  shard:
+    name: "<dark_purple>Silence Shard"
+    material: AMETHYST_SHARD
+    lore:
+      - "<gray>Stops nearby players from using abilities."
+    cooldown: 30s
+    abilities:
+      hush:
+        type: silence
+        mode: radius
+        radius: 8
+        duration: 5s
+        silence-self: false
+        message: "<dark_purple>{owner} silenced you for {time}s!"
+        effects:
+          - weakness:1
+        particle:
+          type: witch
+          amount: 20
+          speed: 0.05
+
+  chestplate:
+    name: "<dark_purple>Voidplate"
+    material: DIAMOND_CHESTPLATE
+    enchantments:
+      - protection:3
+    attributes:
+      - attribute: max_health
+        amount: 4
+        operation: add_number
+        slot: chest
+        type: override
+        text: "<gold>+4 Max Health"
+
+trickster:
+  name: "<light_purple>Trickster"
+  price:
+    buy: 2000
+    sell: 1000
+
+  bow:
+    name: "<light_purple>Hexing Bow"
+    material: BOW
+    glow: true
+    lore:
+      - "<gray>Arrows poison, slow and silence what they hit."
+    cooldown: 6s
+    enchantments:
+      - infinity:1
+      - power:2
+    abilities:
+      hex:
+        type: projected
+        range: 30
+        commands:
+          - "effect give @target minecraft:poison 4 0 true"
+          - "effect give @target minecraft:slowness 3 1 true"
+        activationmessage:
+          - for: target
+            message: "<red>You were hexed by {inflictor}!"
+          - for: inflictor
+            message: "<green>Your hex landed on {target}."
+        particle:
+          type: witch
+          amount: 20
+          speed: 0.05
+      mute:
+        type: silence
+        mode: projectile
+        duration: 3s
+        message: "<light_purple>{owner} muted your abilities for {time}s."
+        particle:
+          type: smoke
+          amount: 15
+          speed: 0.02
+
+  arrow:
+    name: "<light_purple>Trick Arrow"
+    material: ARROW
+    amount: 1
+
+  shard:
+    name: "<light_purple>Swap Shard"
+    material: PRISMARINE_SHARD
+    lore:
+      - "<gray>Right click a player to trade places."
+    cooldown: 15s
+    abilities:
+      switch:
+        type: swap
+        commands:
+          - "effect give @target minecraft:slowness 2 1 true"
+        activationmessage:
+          - for: target
+            message: "<yellow>{inflictor} swapped places with you!"
+          - for: inflictor
+            message: "<green>You swapped places with {target}."
+        particle:
+          type: portal
+          amount: 40
+          speed: 0.5
+
+  compass:
+    name: "<light_purple>Chaos Compass"
+    material: COMPASS
+    lore:
+      - "<gray>Curses a random player nearby."
+    cooldown: 18s
+    abilities:
+      chaos:
         type: randomized_target
         range: 20
+        commands:
+          - "effect give @target minecraft:blindness 4 0 true"
+          - "effect give @target minecraft:slowness 4 1 true"
+        activationmessage:
+          - for: target
+            message: "<dark_gray>Something clouds your vision..."
+          - for: inflictor
+            message: "<green>Chaos found a target."
+        particle:
+          type: smoke
+          amount: 20
+          speed: 0.02
+
+  chestplate:
+    name: "<light_purple>Jester's Vest"
+    material: LEATHER_CHESTPLATE
+    enchantments:
+      - protection:2
+
+  boots:
+    name: "<light_purple>Jester's Boots"
+    material: LEATHER_BOOTS
+    enchantments:
+      - feather_falling:3
+
+warden:
+  name: "<red>Warden"
+  price:
+    buy: 2500
+    sell: 1250
+
+  hammer:
+    name: "<red>Warden's Maul"
+    material: IRON_AXE
+    glow: true
+    lore:
+      - "<gray>Hold it to crush the area around you."
+    cooldown: 25s
+    enchantments:
+      - sharpness:3
+      - unbreaking:3
+    abilities:
+      quake:
+        type: radiuseffect
+        shape: box
+        width: 4
         duration: 5s
+        particle:
+          type: crit
+          amount: 30
+          speed: 0.1
         effects:
-          - blindness:1
+          - slowness:3
+          - weakness:2
+        activationmessage:
+          - for: target
+            message: "<red>The ground shakes under you!"
+          - for: inflictor
+            message: "<gold>Your Quake is active."
+
+  core:
+    name: "<red>Ward Core"
+    material: NAUTILUS_SHELL
+    lore:
+      - "<gray>Hold it to mark enemies in a sphere."
+    cooldown: 30s
+    abilities:
+      ward:
+        type: radiuseffect
+        shape: sphere
+        width: 6
+        duration: 5s
+        particle:
+          type: enchant
+          amount: 40
+          speed: 0.5
+        effects:
+          - slowness:1
+          - glowing:1
+        activationmessage:
+          - for: target
+            message: "<red>You are marked by a Ward Core!"
+
+  brew:
+    name: "<red>Mending Brew"
+    material: POTION
+    lore:
+      - "<gray>Drink to regenerate."
+    potion:
+      type: regeneration
+      duration: 15s
+      amplifier: 1
+
+  helmet:
+    name: "<red>Warden's Helm"
+    material: IRON_HELMET
+    enchantments:
+      - protection:3
+
+  chestplate:
+    name: "<red>Warden's Plate"
+    material: DIAMOND_CHESTPLATE
+    lore:
+      - "<gray>Passive: resistance and absorption."
+    enchantments:
+      - protection:3
+    abilities:
+      bulwark:
+        type: potion_effect
+        effects:
+          - resistance:1
+          - absorption:2

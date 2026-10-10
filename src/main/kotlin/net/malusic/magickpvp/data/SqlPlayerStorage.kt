@@ -3,25 +3,16 @@ package net.malusic.magickpvp
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import java.io.File
+import java.sql.PreparedStatement
+import java.sql.ResultSet
 import java.util.UUID
 
 data class PlayerData(val kits: Set<String>, val xp: Long)
 
-interface PlayerStorage {
-    fun load(uuid: UUID): PlayerData
-    fun addKit(uuid: UUID, kitId: String)
-    fun removeKit(uuid: UUID, kitId: String)
-    fun addKits(entries: Map<UUID, Set<String>>)
-
-    fun addXp(uuid: UUID, amount: Long)
-    fun setXp(uuid: UUID, amount: Long)
-    fun close()
-}
-
 class SqlPlayerStorage private constructor(
     private val source: HikariDataSource,
     type: StorageType
-) : PlayerStorage {
+) {
 
     private val insertKitSql = when (type) {
         StorageType.SQLITE -> "INSERT OR IGNORE INTO $KITS (uuid, kit_id) VALUES (?, ?)"
@@ -42,42 +33,40 @@ class SqlPlayerStorage private constructor(
             "INSERT INTO $PLAYERS (uuid, xp) VALUES (?, ?) ON DUPLICATE KEY UPDATE xp = VALUES(xp)"
     }
 
-    override fun load(uuid: UUID): PlayerData = source.connection.use { connection ->
-        val kits = HashSet<String>()
-        connection.prepareStatement("SELECT kit_id FROM $KITS WHERE uuid = ?").use { statement ->
+    private fun <T> prepared(sql: String, action: (PreparedStatement) -> T): T =
+        source.connection.use { connection -> connection.prepareStatement(sql).use(action) }
+
+    private fun <T> select(sql: String, uuid: UUID, read: (ResultSet) -> T): T =
+        prepared(sql) { statement ->
             statement.setString(1, uuid.toString())
-            statement.executeQuery().use { rows ->
-                while (rows.next()) kits += rows.getString(1)
-            }
+            statement.executeQuery().use(read)
         }
-        val xp = connection.prepareStatement("SELECT xp FROM $PLAYERS WHERE uuid = ?").use { statement ->
-            statement.setString(1, uuid.toString())
-            statement.executeQuery().use { rows -> if (rows.next()) rows.getLong(1) else 0L }
-        }
-        PlayerData(kits, xp)
-    }
 
-    override fun addKit(uuid: UUID, kitId: String) {
-        source.connection.use { connection ->
-            connection.prepareStatement(insertKitSql).use { statement ->
-                statement.setString(1, uuid.toString())
-                statement.setString(2, kitId)
-                statement.executeUpdate()
-            }
+    private fun update(sql: String, vararg values: Any) {
+        prepared(sql) { statement ->
+            values.forEachIndexed { index, value -> statement.setObject(index + 1, value) }
+            statement.executeUpdate()
         }
     }
 
-    override fun removeKit(uuid: UUID, kitId: String) {
-        source.connection.use { connection ->
-            connection.prepareStatement("DELETE FROM $KITS WHERE uuid = ? AND kit_id = ?").use { statement ->
-                statement.setString(1, uuid.toString())
-                statement.setString(2, kitId)
-                statement.executeUpdate()
-            }
+    fun load(uuid: UUID): PlayerData {
+        val kits = select("SELECT kit_id FROM $KITS WHERE uuid = ?", uuid) { rows ->
+            val found = HashSet<String>()
+            while (rows.next()) found += rows.getString(1)
+            found
         }
+        val xp = select("SELECT xp FROM $PLAYERS WHERE uuid = ?", uuid) { rows ->
+            if (rows.next()) rows.getLong(1) else 0L
+        }
+        return PlayerData(kits, xp)
     }
 
-    override fun addKits(entries: Map<UUID, Set<String>>) {
+    fun addKit(uuid: UUID, kitId: String) = update(insertKitSql, uuid.toString(), kitId)
+
+    fun removeKit(uuid: UUID, kitId: String) =
+        update("DELETE FROM $KITS WHERE uuid = ? AND kit_id = ?", uuid.toString(), kitId)
+
+    fun addKits(entries: Map<UUID, Set<String>>) {
         if (entries.isEmpty()) return
         source.connection.use { connection ->
             val previousAutoCommit = connection.autoCommit
@@ -103,21 +92,11 @@ class SqlPlayerStorage private constructor(
         }
     }
 
-    override fun addXp(uuid: UUID, amount: Long) = writeXp(addXpSql, uuid, amount)
+    fun addXp(uuid: UUID, amount: Long) = update(addXpSql, uuid.toString(), amount)
 
-    override fun setXp(uuid: UUID, amount: Long) = writeXp(setXpSql, uuid, amount)
+    fun setXp(uuid: UUID, amount: Long) = update(setXpSql, uuid.toString(), amount)
 
-    private fun writeXp(sql: String, uuid: UUID, amount: Long) {
-        source.connection.use { connection ->
-            connection.prepareStatement(sql).use { statement ->
-                statement.setString(1, uuid.toString())
-                statement.setLong(2, amount)
-                statement.executeUpdate()
-            }
-        }
-    }
-
-    override fun close() {
+    fun close() {
         source.close()
     }
 

@@ -15,7 +15,7 @@ import java.util.logging.Level
 
 class DataManager(private val plugin: PluginManager) : Listener {
 
-    private var storage: PlayerStorage? = null
+    private var storage: SqlPlayerStorage? = null
     private var executor: ExecutorService? = null
 
     val isOpen: Boolean get() = storage != null
@@ -53,7 +53,7 @@ class DataManager(private val plugin: PluginManager) : Listener {
         storage = null
     }
 
-    fun write(action: (PlayerStorage) -> Unit) {
+    fun write(action: (SqlPlayerStorage) -> Unit) {
         val target = storage ?: return
         val worker = executor ?: return
         worker.execute {
@@ -65,7 +65,7 @@ class DataManager(private val plugin: PluginManager) : Listener {
         }
     }
 
-    fun <T> read(action: (PlayerStorage) -> T): T {
+    fun <T> read(action: (SqlPlayerStorage) -> T): T {
         val target = storage ?: error("Storage is not open")
         val worker = executor ?: error("Storage is not open")
         return worker.submit<T> { action(target) }.get()
@@ -97,7 +97,7 @@ class DataManager(private val plugin: PluginManager) : Listener {
         plugin.experience.uncache(uuid)
     }
 
-    private fun importLegacyYaml(target: PlayerStorage) {
+    private fun importLegacyYaml(target: SqlPlayerStorage) {
         val legacy = File(plugin.dataFolder, "data.yml")
         if (!legacy.exists()) return
 

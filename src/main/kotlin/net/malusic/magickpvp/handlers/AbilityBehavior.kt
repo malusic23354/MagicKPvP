@@ -15,11 +15,17 @@ interface AbilityBehavior {
 
     val tagsProjectiles: Boolean get() = false
 
+    val clickTarget: Boolean get() = false
+
     fun activate(context: AbilityContext, ability: Ability, index: Int) {}
 
     fun passive(player: Player, ability: Ability) {}
 
+    fun targetClicked(ability: Ability, target: Player, inflictor: Player) {}
+
     fun projectileHit(ability: Ability, target: Player, inflictor: Player) {}
+
+    fun blocks(player: Player): Boolean = false
 
     fun tick() {}
 

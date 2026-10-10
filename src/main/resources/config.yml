@@ -43,12 +43,75 @@ combat:
   block-kit-switch: true
 
 menu:
-  size: 27
+  size: 36
   pages: 1
   autofill: true
   decoration: BLACK_STAINED_GLASS_PANE
   kits:
-    - id: example_kit
+    - id: pyromancer
       slot: 10
       page: 1
-      displayitem: sword
+      displayitem: staff
+      lore:
+        - ""
+        - "<gold>Inferno Aura<gray>: burns everyone around you."
+        - "<gold>Ashwalker Boots<gray>: passive speed and fire resistance."
+        - "<dark_gray>Right click to preview."
+    - id: stormcaller
+      slot: 12
+      page: 1
+      displayitem: rod
+      lore:
+        - ""
+        - "<aqua>Thunder Staff<gray>: chain lightning between enemies."
+        - "<aqua>Storm Step<gray>: damaging dash."
+        - "<dark_gray>Right click to preview."
+    - id: shadow
+      slot: 14
+      page: 1
+      displayitem: dagger
+      lore:
+        - ""
+        - "<dark_gray>Nightfang<gray>: rewind your position and health."
+        - "<dark_gray>Mirror Shard<gray>: leave a decoy and vanish."
+        - "<dark_red>Bloodlust<gray>: kills stack speed and strength."
+        - "<dark_gray>Right click to preview."
+    - id: summoner
+      slot: 16
+      page: 1
+      displayitem: whistle
+      lore:
+        - ""
+        - "<green>Pack Whistle<gray>: summons fighting wolves."
+        - "<green>Healing Idol<gray>: plants a healing totem."
+        - "<dark_gray>Right click to preview."
+    - id: voidwalker
+      slot: 20
+      page: 1
+      displayitem: singularity
+      lore:
+        - ""
+        - "<dark_purple>Singularity<gray>: a black hole that pulls enemies in."
+        - "<dark_purple>Void Wings<gray>: temporary flight."
+        - "<dark_purple>Silence Shard<gray>: blocks nearby abilities."
+        - "<dark_gray>Right click to preview."
+    - id: trickster
+      slot: 22
+      page: 1
+      displayitem: bow
+      lore:
+        - ""
+        - "<light_purple>Hexing Bow<gray>: poisons, slows and silences."
+        - "<light_purple>Swap Shard<gray>: trade places with a player."
+        - "<light_purple>Chaos Compass<gray>: curses a random player."
+        - "<dark_gray>Right click to preview."
+    - id: warden
+      slot: 24
+      page: 1
+      displayitem: hammer
+      lore:
+        - ""
+        - "<red>Warden's Maul<gray>: box shaped crushing zone."
+        - "<red>Ward Core<gray>: sphere that marks enemies."
+        - "<red>Plate<gray>: passive resistance and absorption."
+        - "<dark_gray>Right click to preview."

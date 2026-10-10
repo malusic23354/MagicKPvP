@@ -50,7 +50,8 @@ data class Ability(
     val durationTicks: Long,
     val effects: List<EffectSpec>,
     val commands: List<String>,
-    val messages: List<ActivationMessage>
+    val messages: List<ActivationMessage>,
+    val config: ConfigurationSection
 )
 
 data class CustomItem(
@@ -243,9 +244,8 @@ class ItemLoader(private val plugin: PluginManager) {
             } else {
                 PotionSpec(
                     type = effectType,
-                    durationTicks = parseDuration(
-                        section.getString("duration") ?: "10s"
-                    ).coerceAtLeast(1L).coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
+                    durationTicks = parseTicks(section.getString("duration"), 200L)
+                        .coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
                     amplifier = section.getInt("amplifier", 0).coerceAtLeast(0)
                 )
             }
@@ -304,7 +304,7 @@ class ItemLoader(private val plugin: PluginManager) {
             buyPrice = 0.0,
             sellPrice = 0.0,
             lore = s.getStringList("lore"),
-            cooldownTicks = parseDuration(s.getString("cooldown")),
+            cooldownTicks = parseTicks(s.getString("cooldown"), 0L),
             abilities = abilities
         )
     }
@@ -372,10 +372,11 @@ class ItemLoader(private val plugin: PluginManager) {
             width = width,
             range = range,
             particle = particle,
-            durationTicks = parseDuration(s.getString("duration")),
+            durationTicks = parseTicks(s.getString("duration"), 0L),
             effects = effects,
             commands = s.getStringList("commands"),
-            messages = messages
+            messages = messages,
+            config = s
         )
     }
 
@@ -412,20 +413,6 @@ class ItemLoader(private val plugin: PluginManager) {
             .removePrefix("player.").removePrefix("player_")
             .replace('.', '_')
         return mcKey(name)?.let { Registry.ATTRIBUTE.get(it) }
-    }
-
-    private fun parseDuration(raw: String?): Long {
-        if (raw.isNullOrBlank()) return 0L
-        val text = raw.trim().lowercase()
-        val number = text.takeWhile { it.isDigit() || it == '.' }.toDoubleOrNull() ?: return 0L
-        val unit = text.dropWhile { it.isDigit() || it == '.' }.trim()
-        val ticks = when (unit) {
-            "t" -> number
-            "ms" -> number / 50.0
-            "m" -> number * 1200.0
-            else -> number * 20.0
-        }
-        return ticks.toLong().coerceAtLeast(1L)
     }
 
     private fun mcKey(raw: String): NamespacedKey? =

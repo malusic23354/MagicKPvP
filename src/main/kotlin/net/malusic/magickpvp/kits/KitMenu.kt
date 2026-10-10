@@ -12,13 +12,12 @@ import org.bukkit.inventory.ItemStack
 
 class KitMenu(private val plugin: PluginManager) : Listener {
 
-    private class MenuHolder(val page: Int) : InventoryHolder {
+    private class MenuHolder(val page: Int, val preview: Boolean = false) : InventoryHolder {
         lateinit var backing: Inventory
         override fun getInventory(): Inventory = backing
     }
 
     private class Placement(val kitId: String, val lore: List<String>, val displayItem: String? = null)
-    private class PreviewHolder(val kitId: String) : InventoryHolder { lateinit var backing: Inventory; override fun getInventory(): Inventory = backing }
 
     private var pages: List<Map<Int, Placement>> = listOf(emptyMap())
 
@@ -61,7 +60,7 @@ class KitMenu(private val plugin: PluginManager) : Listener {
             }
         }
 
-        val autoSlots = (0 until size).filter { !isEdge(it, size) }.ifEmpty { (0 until size).toList() }
+        val autoSlots = contentSlots(size)
         var pageNumber = 1
         var cursor = 0
         for ((kitId, lore) in queue) {
@@ -96,13 +95,7 @@ class KitMenu(private val plugin: PluginManager) : Listener {
         )
         val inventory = plugin.server.createInventory(holder, size, title)
         holder.backing = inventory
-
-        config.decoration?.let { material ->
-            val pane = decorationItem(material)
-            for (slot in 0 until size) {
-                if (isEdge(slot, size)) inventory.setItem(slot, pane)
-            }
-        }
+        decorate(inventory, size)
 
         if (pageCount > 1) {
             if (currentPage > 1) inventory.setItem(previousSlot(size), navItem("previous-page"))
@@ -120,6 +113,7 @@ class KitMenu(private val plugin: PluginManager) : Listener {
     fun onClick(event: InventoryClickEvent) {
         val holder = event.inventory.holder as? MenuHolder ?: return
         event.isCancelled = true
+        if (holder.preview) return
 
         val player = event.whoClicked as? Player ?: return
         val slot = event.rawSlot
@@ -203,32 +197,29 @@ class KitMenu(private val plugin: PluginManager) : Listener {
 
     private fun openPreview(player: Player, kitId: String) {
         val kit = plugin.itemLoader.get(kitId) ?: return
-        val config = plugin.configuration
-        val holder = PreviewHolder(kitId)
+        val size = plugin.configuration.menuSize
+        val holder = MenuHolder(1, preview = true)
         val title = plugin.messages.component("menu-title", "page" to "1", "pages" to "1")
-        val inventory = plugin.server.createInventory(holder, config.menuSize, title)
+        val inventory = plugin.server.createInventory(holder, size, title)
         holder.backing = inventory
-        config.decoration?.let { material ->
-            val pane = decorationItem(material)
-            for (slot in 0 until config.menuSize) if (isEdge(slot, config.menuSize)) inventory.setItem(slot, pane)
-        }
-        val slots = (0 until config.menuSize).filter { !isEdge(it, config.menuSize) }.ifEmpty { (0 until config.menuSize).toList() }
+        decorate(inventory, size)
+        val slots = contentSlots(size)
         kit.pieces.values.forEachIndexed { index, piece ->
             if (index < slots.size) inventory.setItem(slots[index], plugin.itemLoader.build(piece, tagged = false))
         }
         player.openInventory(inventory)
     }
 
-    @EventHandler
-    fun onPreviewClick(event: InventoryClickEvent) {
-        if (event.inventory.holder !is PreviewHolder) return
-        event.isCancelled = true
+    private fun decorate(inventory: Inventory, size: Int) {
+        val material = plugin.configuration.decoration ?: return
+        val pane = decorationItem(material)
+        for (slot in 0 until size) {
+            if (isEdge(slot, size)) inventory.setItem(slot, pane)
+        }
     }
 
-    @EventHandler
-    fun onPreviewDrag(event: InventoryDragEvent) {
-        if (event.inventory.holder is PreviewHolder) event.isCancelled = true
-    }
+    private fun contentSlots(size: Int): List<Int> =
+        (0 until size).filter { !isEdge(it, size) }.ifEmpty { (0 until size).toList() }
 
     private fun decorationItem(material: Material): ItemStack {
         val stack = ItemStack(material)

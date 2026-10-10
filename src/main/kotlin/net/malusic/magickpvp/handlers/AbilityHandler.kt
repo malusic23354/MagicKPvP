@@ -14,6 +14,8 @@ import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.scheduler.BukkitTask
+import org.bukkit.event.player.PlayerInteractAtEntityEvent
+import org.bukkit.event.player.PlayerInteractEntityEvent
 import java.util.UUID
 
 class AbilityHandler(private val plugin: PluginManager) : Listener {
@@ -32,6 +34,17 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         registry.register(RadiusAbility(plugin, actions))
         registry.register(RandomizedTargetAbility(plugin, actions))
         registry.register(ProjectedAbility(plugin, actions))
+        registry.register(SwapAbility(plugin, actions))
+
+        add(GuardiansAbility(plugin))
+        add(TotemAbility(plugin))
+        add(DecoyAbility(plugin))
+        add(BlackHoleAbility(plugin))
+        add(ChainLightningAbility(plugin))
+        add(DashAbility(plugin))
+        add(RewindAbility(plugin))
+        add(BloodlustAbility(plugin))
+        add(SilenceAbility(plugin))
     }
 
     fun start() {
@@ -53,8 +66,10 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
     private fun isRangedWeapon(material: Material): Boolean =
         material == Material.BOW ||
-            material == Material.CROSSBOW ||
-            material == Material.TRIDENT
+                material == Material.CROSSBOW ||
+                material == Material.TRIDENT ||
+                material == Material.SNOWBALL ||
+                material == Material.EGG
 
     private fun notify(player: Player, reason: String, messageKey: String) {
         val key = player.uniqueId to reason
@@ -69,11 +84,38 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         }
     }
 
+    private fun startCooldown(player: Player, itemId: String, custom: CustomItem): Long {
+        val now = System.currentTimeMillis()
+        val key = player.uniqueId to itemId
+        val expiresAt = cooldowns[key] ?: 0L
+        if (expiresAt > now) return expiresAt - now
+
+        if (custom.cooldownTicks > 0L) cooldowns[key] = now + custom.cooldownTicks * 50L
+        return 0L
+    }
+
     private fun activateAbilities(player: Player, itemId: String, custom: CustomItem) {
         val context = AbilityContext(player, itemId, custom)
         for ((index, ability) in custom.abilities.withIndex()) {
             registry.get(ability.type)?.activate(context, ability, index)
         }
+    }
+
+    private fun add(behavior: AbilityBehavior) {
+        registry.register(behavior)
+        if (behavior is Listener) plugin.server.pluginManager.registerEvents(behavior, plugin)
+    }
+
+    private fun canUse(player: Player): Boolean {
+        if (!plugin.combat.abilitiesAllowed(player)) {
+            notify(player, "zone", "abilities-disabled")
+            return false
+        }
+        if (registry.all().any { it.blocks(player) }) {
+            notify(player, "silenced", "silenced")
+            return false
+        }
+        return true
     }
 
     @EventHandler
@@ -87,31 +129,21 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         if (isRangedWeapon(custom.material)) return
         if (custom.abilities.isEmpty()) return
 
-        if (!plugin.combat.abilitiesAllowed(player)) {
-            notify(player, "zone", "abilities-disabled")
-            return
-        }
+        if (custom.abilities.all { registry.get(it.type)?.clickTarget == true }) return
 
-        val now = System.currentTimeMillis()
-        val cooldownKey = player.uniqueId to itemId
-        val expiresAt = cooldowns[cooldownKey] ?: 0L
+        if (!canUse(player)) return
 
-        if (expiresAt > now) {
+        val left = startCooldown(player, itemId, custom)
+        if (left > 0L) {
             event.isCancelled = true
-
-            val secondsLeft = ((expiresAt - now + 999L) / 1000L).toString()
             player.sendMessage(
                 plugin.messages.parse(
                     plugin.messages.raw("cooldown"),
-                    "time" to secondsLeft,
+                    "time" to ((left + 999L) / 1000L).toString(),
                     "item" to plugin.messages.plain(custom.name)
                 )
             )
             return
-        }
-
-        if (custom.cooldownTicks > 0L) {
-            cooldowns[cooldownKey] = now + custom.cooldownTicks * 50L
         }
 
         activateAbilities(player, itemId, custom)
@@ -119,7 +151,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
     private fun tick() {
         for (player in plugin.server.onlinePlayers) {
-            if (!player.isDead) {
+            if (!player.isDead && plugin.kits.hasActiveKit(player)) {
                 applyPassive(player)
             }
         }
@@ -163,22 +195,11 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         val (itemId, custom) = held
         if (custom.abilities.isEmpty()) return
 
-        if (!plugin.combat.abilitiesAllowed(shooter)) {
-            notify(shooter, "zone", "abilities-disabled")
-            return
-        }
+        if (!canUse(shooter)) return
 
-        val now = System.currentTimeMillis()
-        val cooldownKey = shooter.uniqueId to itemId
-        val expiresAt = cooldowns[cooldownKey] ?: 0L
-
-        if (expiresAt > now) {
+        if (startCooldown(shooter, itemId, custom) > 0L) {
             notify(shooter, itemId, "ability-cooldown")
             return
-        }
-
-        if (custom.cooldownTicks > 0L) {
-            cooldowns[cooldownKey] = now + custom.cooldownTicks * 50L
         }
 
         if (custom.abilities.any { registry.get(it.type)?.tagsProjectiles == true }) {
@@ -216,5 +237,29 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         cooldowns.keys.removeIf { it.first == uuid }
         notices.keys.removeIf { it.first == uuid }
         registry.all().forEach { it.release(uuid) }
+    }
+
+    @EventHandler
+    fun onEntityClick(event: PlayerInteractEntityEvent) {
+        if (event is PlayerInteractAtEntityEvent) return
+        if (event.hand != EquipmentSlot.HAND) return
+
+        val target = event.rightClicked as? Player ?: return
+        val player = event.player
+        val itemId = plugin.itemLoader.itemId(player.inventory.itemInMainHand) ?: return
+        val custom = plugin.itemLoader.piece(itemId) ?: return
+        if (isRangedWeapon(custom.material)) return
+
+        val clickAbilities = custom.abilities.filter { registry.get(it.type)?.clickTarget == true }
+        if (clickAbilities.isEmpty()) return
+
+        if (!canUse(player)) return
+
+        if (startCooldown(player, itemId, custom) > 0L) {
+            notify(player, itemId, "ability-cooldown")
+            return
+        }
+
+        clickAbilities.forEach { registry.get(it.type)?.targetClicked(it, target, player) }
     }
 }

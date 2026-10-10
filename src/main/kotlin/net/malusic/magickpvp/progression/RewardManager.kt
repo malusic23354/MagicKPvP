@@ -1,7 +1,6 @@
 package net.malusic.magickpvp
 
 import org.bukkit.entity.Player
-import org.bukkit.entity.Projectile
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
@@ -19,7 +18,7 @@ class RewardManager(private val plugin: PluginManager) : Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onDamage(event: EntityDamageByEntityEvent) {
         val victim = event.entity as? Player ?: return
-        val attacker = attackerOf(event) ?: return
+        val attacker = event.attacker() ?: return
         if (attacker.uniqueId == victim.uniqueId) return
 
         val dealt = minOf(event.finalDamage, victim.health)
@@ -63,12 +62,6 @@ class RewardManager(private val plugin: PluginManager) : Listener {
         val uuid = event.player.uniqueId
         damage.remove(uuid)
         damage.values.forEach { it.remove(uuid) }
-    }
-
-    private fun attackerOf(event: EntityDamageByEntityEvent): Player? = when (val damager = event.damager) {
-        is Player -> damager
-        is Projectile -> damager.shooter as? Player
-        else -> null
     }
 
     private fun pay(player: Player, victim: Player, coins: Double, xp: Long, messageKey: String) {

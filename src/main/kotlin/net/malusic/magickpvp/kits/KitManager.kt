@@ -1,11 +1,11 @@
 package net.malusic.magickpvp
 
-import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.player.PlayerQuitEvent
+import org.bukkit.inventory.EquipmentSlot
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -47,6 +47,8 @@ class KitManager(private val plugin: PluginManager) : Listener {
     fun owns(player: Player, kitId: String): Boolean =
         isPurchased(player, kitId) || hasPermission(player, kitId)
 
+    fun hasActiveKit(player: Player): Boolean = player.uniqueId in activeKit
+
     fun ownedKits(player: Player): List<String> = plugin.itemLoader.ids.filter { owns(player, it) }
 
     fun select(player: Player, id: String): KitResult {
@@ -61,22 +63,11 @@ class KitManager(private val plugin: PluginManager) : Listener {
         clearInventory(player)
 
         for (stack in plugin.itemLoader.build(kit)) {
-            when (stack.type) {
-                Material.LEATHER_HELMET, Material.CHAINMAIL_HELMET, Material.IRON_HELMET,
-                Material.GOLDEN_HELMET, Material.DIAMOND_HELMET, Material.NETHERITE_HELMET,
-                Material.TURTLE_HELMET, Material.CARVED_PUMPKIN, Material.PLAYER_HEAD,
-                Material.SKELETON_SKULL, Material.WITHER_SKELETON_SKULL, Material.ZOMBIE_HEAD,
-                Material.CREEPER_HEAD, Material.DRAGON_HEAD, Material.PIGLIN_HEAD ->
-                    player.inventory.setHelmet(stack)
-                Material.LEATHER_CHESTPLATE, Material.CHAINMAIL_CHESTPLATE, Material.IRON_CHESTPLATE,
-                Material.GOLDEN_CHESTPLATE, Material.DIAMOND_CHESTPLATE, Material.NETHERITE_CHESTPLATE,
-                Material.ELYTRA -> player.inventory.setChestplate(stack)
-                Material.LEATHER_LEGGINGS, Material.CHAINMAIL_LEGGINGS, Material.IRON_LEGGINGS,
-                Material.GOLDEN_LEGGINGS, Material.DIAMOND_LEGGINGS, Material.NETHERITE_LEGGINGS ->
-                    player.inventory.setLeggings(stack)
-                Material.LEATHER_BOOTS, Material.CHAINMAIL_BOOTS, Material.IRON_BOOTS,
-                Material.GOLDEN_BOOTS, Material.DIAMOND_BOOTS, Material.NETHERITE_BOOTS ->
-                    player.inventory.setBoots(stack)
+            when (stack.type.equipmentSlot) {
+                EquipmentSlot.HEAD -> player.inventory.setHelmet(stack)
+                EquipmentSlot.CHEST -> player.inventory.setChestplate(stack)
+                EquipmentSlot.LEGS -> player.inventory.setLeggings(stack)
+                EquipmentSlot.FEET -> player.inventory.setBoots(stack)
                 else -> {
                     val leftovers = player.inventory.addItem(stack)
                     leftovers.values.forEach { player.world.dropItemNaturally(player.location, it) }
