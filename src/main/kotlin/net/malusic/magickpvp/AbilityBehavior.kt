@@ -10,7 +10,9 @@ class AbilityContext(val player: Player, val itemId: String, val item: CustomIte
 
 interface AbilityBehavior {
     val key: String
+
     val aliases: Set<String> get() = emptySet()
+
     val tagsProjectiles: Boolean get() = false
 
     fun activate(context: AbilityContext, ability: Ability, index: Int) {}

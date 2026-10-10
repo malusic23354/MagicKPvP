@@ -12,6 +12,7 @@ interface PlayerStorage {
     fun addKit(uuid: UUID, kitId: String)
     fun removeKit(uuid: UUID, kitId: String)
     fun addKits(entries: Map<UUID, Set<String>>)
+
     fun addXp(uuid: UUID, amount: Long)
     fun setXp(uuid: UUID, amount: Long)
     fun close()
@@ -150,14 +151,13 @@ class SqlPlayerStorage private constructor(
                     val database = File(plugin.dataFolder, settings.sqliteFile)
                     config.driverClassName = "org.sqlite.JDBC"
                     config.jdbcUrl = "jdbc:sqlite:${database.absolutePath}"
-                    // SQLite allows a single writer, so one connection avoids "database is locked" errors.
                     config.maximumPoolSize = 1
                 }
                 StorageType.MYSQL -> {
                     val sslMode = if (settings.useSsl) "REQUIRED" else "DISABLED"
                     config.driverClassName = "com.mysql.cj.jdbc.Driver"
                     config.jdbcUrl = "jdbc:mysql://${settings.host}:${settings.port}/${settings.database}" +
-                            "?sslMode=$sslMode&allowPublicKeyRetrieval=true&characterEncoding=utf8"
+                        "?sslMode=$sslMode&allowPublicKeyRetrieval=true&characterEncoding=utf8"
                     config.username = settings.username
                     config.password = settings.password
                     config.maximumPoolSize = settings.poolSize

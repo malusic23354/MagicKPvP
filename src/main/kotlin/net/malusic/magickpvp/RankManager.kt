@@ -49,20 +49,22 @@ class RankManager(private val plugin: PluginManager) {
     fun nextRank(xp: Long): RankGroup? = ranks.firstOrNull { it.xp > xp }
 
     fun sync(uuid: UUID, xp: Long) {
-        val target = rankFor(xp)?.group ?: return
-        val others = managedGroups - target
+        if (!enabled) return
+
+        val target = rankFor(xp)?.group
+        val others = if (target == null) managedGroups else managedGroups - target
 
         val loaded = luckPerms.userManager.getUser(uuid)
         if (loaded != null && alreadyCorrect(loaded, target, others)) return
 
         luckPerms.userManager.modifyUser(uuid) { user ->
             user.data().clear(NodeType.INHERITANCE.predicate { it.groupName in others })
-            user.data().add(InheritanceNode.builder(target).build())
+            if (target != null) user.data().add(InheritanceNode.builder(target).build())
         }
     }
 
-    private fun alreadyCorrect(user: User, target: String, others: Set<String>): Boolean {
+    private fun alreadyCorrect(user: User, target: String?, others: Set<String>): Boolean {
         val groups = user.getNodes(NodeType.INHERITANCE).map { it.groupName }
-        return target in groups && groups.none { it in others }
+        return (target == null || target in groups) && groups.none { it in others }
     }
 }

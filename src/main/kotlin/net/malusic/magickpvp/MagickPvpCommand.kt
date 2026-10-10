@@ -8,7 +8,8 @@ import org.bukkit.entity.Player
 
 class MagickPvpCommand(private val plugin: PluginManager) : CommandExecutor, TabCompleter {
 
-    private val subCommands = listOf("menu", "select", "buy", "sell", "info", "reload")
+    private val subCommands = listOf("menu", "select", "buy", "sell", "info", "xp", "reload")
+    private val xpActions = listOf("add", "remove", "set")
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         val messages = plugin.messages
@@ -47,6 +48,7 @@ class MagickPvpCommand(private val plugin: PluginManager) : CommandExecutor, Tab
                     plugin.kitMenu.open(player)
                 }
             }
+            "xp" -> handleXp(sender, args)
             "select", "buy", "sell" -> {
                 val player = sender as? Player ?: return playerOnly(sender)
                 val kitId = args.getOrNull(1)
@@ -64,6 +66,68 @@ class MagickPvpCommand(private val plugin: PluginManager) : CommandExecutor, Tab
         return true
     }
 
+    private fun handleXp(sender: CommandSender, args: Array<out String>) {
+        val messages = plugin.messages
+        val action = args.getOrNull(1)?.lowercase()
+
+        if (action == null) {
+            val player = sender as? Player ?: run { playerOnly(sender); return }
+            showXp(player)
+            return
+        }
+
+        if (action !in xpActions) {
+            messages.send(sender, "xp-usage")
+            return
+        }
+        if (!sender.hasPermission("magickpvp.xp.admin")) {
+            messages.send(sender, "no-permission")
+            return
+        }
+
+        val targetName = args.getOrNull(2)
+        val amount = args.getOrNull(3)?.toLongOrNull()
+        if (targetName == null || amount == null || amount < 0L) {
+            messages.send(sender, "xp-usage")
+            return
+        }
+        val target = plugin.server.getPlayerExact(targetName)
+        if (target == null) {
+            messages.send(sender, "player-not-found", "player" to targetName)
+            return
+        }
+
+        when (action) {
+            "add" -> plugin.experience.add(target, amount)
+            "remove" -> plugin.experience.add(target, -amount)
+            else -> plugin.experience.set(target, amount)
+        }
+
+        messages.send(
+            sender, "xp-changed",
+            "player" to target.name,
+            "xp" to plugin.experience.get(target.uniqueId).toString()
+        )
+    }
+
+    private fun showXp(player: Player) {
+        val messages = plugin.messages
+        val xp = plugin.experience.get(player.uniqueId)
+        messages.send(player, "xp-self", "xp" to xp.toString())
+
+        val ranks = plugin.ranks?.takeIf { it.enabled } ?: return
+        val next = ranks.nextRank(xp)
+        if (next == null) {
+            messages.send(player, "xp-max")
+        } else {
+            messages.send(
+                player, "xp-next",
+                "rank" to next.group,
+                "needed" to (next.xp - xp).toString()
+            )
+        }
+    }
+
     override fun onTabComplete(
         sender: CommandSender,
         command: Command,
@@ -74,6 +138,13 @@ class MagickPvpCommand(private val plugin: PluginManager) : CommandExecutor, Tab
             return subCommands
                 .filter { sender.hasPermission("magickpvp.$it") }
                 .filter { it.startsWith(args[0], ignoreCase = true) }
+        }
+        if (args[0].equals("xp", ignoreCase = true) && sender.hasPermission("magickpvp.xp.admin")) {
+            return when (args.size) {
+                2 -> xpActions.filter { it.startsWith(args[1], ignoreCase = true) }
+                3 -> plugin.server.onlinePlayers.map { it.name }.filter { it.startsWith(args[2], ignoreCase = true) }
+                else -> emptyList()
+            }
         }
         if (args.size == 2 && sender is Player) {
             val candidates = when (args[0].lowercase()) {

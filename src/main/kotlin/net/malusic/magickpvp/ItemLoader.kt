@@ -431,3 +431,4 @@ class ItemLoader(private val plugin: PluginManager) {
     private fun mcKey(raw: String): NamespacedKey? =
         runCatching { NamespacedKey.minecraft(raw.trim().lowercase()) }.getOrNull()
 }
+

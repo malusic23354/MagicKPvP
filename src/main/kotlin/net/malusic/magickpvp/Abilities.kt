@@ -163,9 +163,9 @@ class RadiusAbility(
             val holder = plugin.server.getPlayer(state.key.playerId)
 
             val stillHolding = holder != null &&
-                    holder.isOnline &&
-                    !holder.isDead &&
-                    plugin.itemLoader.itemId(holder.inventory.itemInMainHand) == state.key.itemId
+                holder.isOnline &&
+                !holder.isDead &&
+                plugin.itemLoader.itemId(holder.inventory.itemInMainHand) == state.key.itemId
 
             if (holder == null || !stillHolding || !plugin.combat.abilitiesAllowed(holder)) {
                 iterator.remove()
@@ -271,10 +271,10 @@ class RandomizedTargetAbility(
         val rangeSquared = ability.range * ability.range
         val candidates = inflictor.world.players.filter { target ->
             target.uniqueId != inflictor.uniqueId &&
-                    !target.isDead &&
-                    target.gameMode != GameMode.SPECTATOR &&
-                    plugin.combat.abilitiesAllowed(target) &&
-                    target.location.distanceSquared(inflictor.location) <= rangeSquared
+                !target.isDead &&
+                target.gameMode != GameMode.SPECTATOR &&
+                plugin.combat.abilitiesAllowed(target) &&
+                target.location.distanceSquared(inflictor.location) <= rangeSquared
         }
         val target = candidates.randomOrNull() ?: return
 
