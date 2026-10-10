@@ -53,8 +53,8 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
     private fun isRangedWeapon(material: Material): Boolean =
         material == Material.BOW ||
-                material == Material.CROSSBOW ||
-                material == Material.TRIDENT
+            material == Material.CROSSBOW ||
+            material == Material.TRIDENT
 
     private fun notify(player: Player, reason: String, messageKey: String) {
         val key = player.uniqueId to reason

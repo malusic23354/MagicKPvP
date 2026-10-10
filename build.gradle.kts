@@ -11,20 +11,15 @@ repositories {
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://jitpack.io")
-    maven("https://repo.lucko.me/")
     maven("https://maven.enginehub.org/repo/")
 }
 
 dependencies {
     paperweight.paperDevBundle("26.3.build.+")
     compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
-    implementation("com.zaxxer:HikariCP:6.3.0")
+    compileOnly("com.zaxxer:HikariCP:6.3.0")
     compileOnly("net.luckperms:api:5.4")
-    compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.13") {
-        exclude(group = "com.google.guava", module = "guava")
-        exclude(group = "com.google.code.gson", module = "gson")
-        exclude(group = "it.unimi.dsi", module = "fastutil")
-    }
+    compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.9")
 }
 
 tasks {
@@ -38,7 +33,6 @@ tasks {
 
     shadowJar {
         archiveClassifier.set("")
-        relocate("com.zaxxer.hikari", "net.malusic.yourplugin.libs.hikari")
     }
 
     compileJava {

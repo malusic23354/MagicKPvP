@@ -24,6 +24,7 @@ enum class KitResult {
 class KitManager(private val plugin: PluginManager) : Listener {
 
     private val activeKit = HashMap<UUID, String>()
+
     private val purchased = ConcurrentHashMap<UUID, MutableSet<String>>()
 
     fun cache(uuid: UUID, kits: Collection<String>) {
