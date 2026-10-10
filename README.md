@@ -165,6 +165,7 @@ The following ability type names are supported in `items.yml`:
 - `randomized_target` (also `randomizedtarget`) — picks a random player in the range you configure and runs the item's commands on them.
 - `flight` — enables flight for the player for the configured duration after they use the item.
 - `potion_effect` — a constant effect as long as the player has the item equipped or held.
+- `swap` — clicking or throwing a projectile with the swap ability will swap players positions.
 
 Check the example `items.yml` shipped with the source for the exact structure and supported fields.
 
