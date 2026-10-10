@@ -14,6 +14,8 @@ import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.scheduler.BukkitTask
+import org.bukkit.event.player.PlayerInteractAtEntityEvent
+import org.bukkit.event.player.PlayerInteractEntityEvent
 import java.util.UUID
 
 class AbilityHandler(private val plugin: PluginManager) : Listener {
@@ -32,6 +34,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         registry.register(RadiusAbility(plugin, actions))
         registry.register(RandomizedTargetAbility(plugin, actions))
         registry.register(ProjectedAbility(plugin, actions))
+        registry.register(SwapAbility(plugin, actions))
     }
 
     fun start() {
@@ -53,8 +56,10 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
     private fun isRangedWeapon(material: Material): Boolean =
         material == Material.BOW ||
-            material == Material.CROSSBOW ||
-            material == Material.TRIDENT
+                material == Material.CROSSBOW ||
+                material == Material.TRIDENT ||
+                material == Material.SNOWBALL ||
+                material == Material.EGG
 
     private fun notify(player: Player, reason: String, messageKey: String) {
         val key = player.uniqueId to reason
@@ -86,6 +91,8 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         val custom = plugin.itemLoader.piece(itemId) ?: return
         if (isRangedWeapon(custom.material)) return
         if (custom.abilities.isEmpty()) return
+
+        if (custom.abilities.all { registry.get(it.type)?.clickTarget == true }) return
 
         if (!plugin.combat.abilitiesAllowed(player)) {
             notify(player, "zone", "abilities-disabled")
@@ -216,5 +223,38 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         cooldowns.keys.removeIf { it.first == uuid }
         notices.keys.removeIf { it.first == uuid }
         registry.all().forEach { it.release(uuid) }
+    }
+
+    @EventHandler
+    fun onEntityClick(event: PlayerInteractEntityEvent) {
+        if (event is PlayerInteractAtEntityEvent) return
+        if (event.hand != EquipmentSlot.HAND) return
+
+        val target = event.rightClicked as? Player ?: return
+        val player = event.player
+        val itemId = plugin.itemLoader.itemId(player.inventory.itemInMainHand) ?: return
+        val custom = plugin.itemLoader.piece(itemId) ?: return
+        if (isRangedWeapon(custom.material)) return
+
+        val clickAbilities = custom.abilities.filter { registry.get(it.type)?.clickTarget == true }
+        if (clickAbilities.isEmpty()) return
+
+        if (!plugin.combat.abilitiesAllowed(player)) {
+            notify(player, "zone", "abilities-disabled")
+            return
+        }
+
+        val now = System.currentTimeMillis()
+        val cooldownKey = player.uniqueId to itemId
+        if ((cooldowns[cooldownKey] ?: 0L) > now) {
+            notify(player, itemId, "ability-cooldown")
+            return
+        }
+
+        if (custom.cooldownTicks > 0L) {
+            cooldowns[cooldownKey] = now + custom.cooldownTicks * 50L
+        }
+
+        clickAbilities.forEach { registry.get(it.type)?.targetClicked(it, target, player) }
     }
 }

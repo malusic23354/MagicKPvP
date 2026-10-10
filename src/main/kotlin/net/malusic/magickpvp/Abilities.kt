@@ -300,3 +300,37 @@ class ProjectedAbility(
         actions.burst(ability, target)
     }
 }
+
+class SwapAbility(
+    private val plugin: PluginManager,
+    private val actions: AbilityActions
+) : AbilityBehavior {
+
+    override val key = "swap"
+    override val tagsProjectiles = true
+    override val clickTarget = true
+
+    override fun projectileHit(ability: Ability, target: Player, inflictor: Player) =
+        swap(ability, target, inflictor)
+
+    override fun targetClicked(ability: Ability, target: Player, inflictor: Player) =
+        swap(ability, target, inflictor)
+
+    private fun swap(ability: Ability, target: Player, inflictor: Player) {
+        if (target.uniqueId == inflictor.uniqueId) return
+        if (target.isDead || inflictor.isDead) return
+        if (target.world != inflictor.world) return
+        if (target.gameMode == GameMode.SPECTATOR) return
+        if (!plugin.combat.abilitiesAllowed(target) || !plugin.combat.abilitiesAllowed(inflictor)) return
+
+        val from = inflictor.location
+        val to = target.location
+
+        inflictor.teleport(to.clone().apply { yaw = from.yaw; pitch = from.pitch })
+        target.teleport(from.clone().apply { yaw = to.yaw; pitch = to.pitch })
+
+        actions.runCommands(ability, target, inflictor)
+        actions.sendMessages(ability, target, inflictor)
+        actions.burst(ability, target)
+    }
+}
