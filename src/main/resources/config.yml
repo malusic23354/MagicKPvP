@@ -75,6 +75,26 @@ cooldown-reduction:
 kit-requirements:
   enabled: true
 
+cooldown-reset-on-death: false
+
+streak-rewards:
+  enabled: true
+  rewards:
+    - streak: 3
+      coins: 50
+      xp: 10
+    - streak: 5
+      coins: 150
+      xp: 25
+      broadcast: "<gold>{player} <gray>is on a <red>{streak} <gray>kill streak!"
+    - streak: 10
+      repeat: true
+      coins: 500
+      xp: 100
+      commands:
+        - "say {player} reached a {streak} kill streak"
+      broadcast: "<gold>{player} <gray>is unstoppable with <red>{streak} <gray>kills in a row!"
+
 menu:
   size: 36
   pages: 1

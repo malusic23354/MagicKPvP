@@ -172,6 +172,26 @@ cooldown-reduction:
 kit-requirements:
   enabled: true
 
+cooldown-reset-on-death: false
+
+streak-rewards:
+  enabled: true
+  rewards:
+    - streak: 3
+      coins: 50
+      xp: 10
+    - streak: 5
+      coins: 150
+      xp: 25
+      broadcast: "<gold>{player} <gray>is on a <red>{streak} <gray>kill streak!"
+    - streak: 10
+      repeat: true
+      coins: 500
+      xp: 100
+      commands:
+        - "say {player} reached a {streak} kill streak"
+      broadcast: "<gold>{player} <gray>is unstoppable with <red>{streak} <gray>kills in a row!"
+
 menu:
   size: 36
   pages: 1
@@ -281,6 +301,25 @@ voidwalker:
 ```
 
 Kits without a `requirement` section are unaffected. Set `kit-requirements.enabled: false` in `config.yml` to ignore every requirement at once. Players who own a kit through its `magickpvp.kit.<id>` permission are not affected. In the menu, a locked kit shows `lorelocked` instead of the price, and buying it is refused with the `requirement-not-met` message.
+
+### Kill streak rewards
+
+When `streak-rewards.enabled` is true, a killer who reaches a listed streak is rewarded. The streak resets to 0 on death and is not saved across restarts.
+
+| Field | Meaning |
+| --- | --- |
+| `streak` | The kill streak that triggers the reward. Required. |
+| `repeat` | If true, the reward triggers at every multiple of `streak` instead of only once. |
+| `coins` | Vault coins to pay. Ignored without an economy. |
+| `xp` | XP to add. |
+| `commands` | Console commands to run. `{player}` and `{streak}` are replaced. |
+| `broadcast` | A MiniMessage line sent to the whole server. `{player}` and `{streak}` are replaced. |
+
+The player receives the `streak-reward` message when coins or XP were paid.
+
+### Ability cleanup and cooldown reset
+
+Selecting a kit, dying, or leaving releases every ability the player had running, such as flight, guardians, black holes, decoys and totems. Flight restores the player's original flight state. Set `cooldown-reset-on-death: true` to clear all of a player's item cooldowns when they die.
 
 ### PlaceholderAPI
 

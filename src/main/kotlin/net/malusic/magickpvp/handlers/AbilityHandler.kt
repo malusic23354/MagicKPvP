@@ -6,8 +6,10 @@ import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
+import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
+import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.entity.ProjectileHitEvent
 import org.bukkit.event.entity.ProjectileLaunchEvent
 import org.bukkit.event.player.PlayerEggThrowEvent
@@ -68,6 +70,10 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         cooling.clear()
         notices.clear()
         registry.all().forEach { it.reset() }
+    }
+
+    fun releaseAll(uuid: UUID) {
+        registry.all().forEach { it.release(uuid) }
     }
 
     fun cooldownLeft(uuid: UUID, itemId: String): Long {
@@ -325,7 +331,18 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         cooldowns.remove(uuid)
         cooling.remove(uuid)
         notices.keys.removeIf { it.first == uuid }
-        registry.all().forEach { it.release(uuid) }
+        releaseAll(uuid)
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    fun onDeath(event: PlayerDeathEvent) {
+        val uuid = event.entity.uniqueId
+        releaseAll(uuid)
+        if (plugin.configuration.cooldownResetOnDeath) {
+            cooldowns.remove(uuid)
+            cooling.remove(uuid)
+            notices.keys.removeIf { it.first == uuid }
+        }
     }
 
     @EventHandler

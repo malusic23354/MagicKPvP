@@ -43,4 +43,5 @@ stats-line: "<gray>XP: <white>{xp} <dark_gray>| <gray>Kills: <white>{kills} <dar
 top-header: "<gold>Top {stat}"
 top-entry: "<gray>#{rank} <yellow>{player} <dark_gray>- <white>{value}"
 top-empty: "<gray>No leaderboard data yet."
+streak-reward: "<green>{streak} kill streak! You earned {coins} and {xp} XP."
 top-usage: "<gray>Usage: <gold>/magickpvp top <xp|kills|deaths|streak>"

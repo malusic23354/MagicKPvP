@@ -20,7 +20,8 @@ class FlightAbility(private val plugin: PluginManager) : AbilityBehavior {
 
     override fun release(playerId: UUID) {
         tasks.remove(playerId)?.cancel()
-        original.remove(playerId)
+        val state = original.remove(playerId) ?: return
+        plugin.server.getPlayer(playerId)?.let { restore(it, state) }
     }
 
     override fun reset() {

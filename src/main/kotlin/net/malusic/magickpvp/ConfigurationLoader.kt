@@ -63,6 +63,20 @@ data class StatsSettings(
     val refreshSeconds: Int = 60
 )
 
+data class StreakReward(
+    val streak: Long,
+    val repeat: Boolean,
+    val coins: Double,
+    val xp: Long,
+    val commands: List<String>,
+    val broadcast: String
+)
+
+data class StreakSettings(
+    val enabled: Boolean = false,
+    val rewards: List<StreakReward> = emptyList()
+)
+
 enum class CooldownDisplayMode { HELD, ALL }
 
 data class CooldownDisplaySettings(
@@ -121,6 +135,10 @@ class ConfigurationLoader(private val plugin: PluginManager) {
     var cooldownReduction: CooldownReductionSettings = CooldownReductionSettings()
         private set
     var kitRequirements: Boolean = true
+        private set
+    var cooldownResetOnDeath: Boolean = false
+        private set
+    var streaks: StreakSettings = StreakSettings()
         private set
 
     fun load() {
@@ -259,6 +277,28 @@ class ConfigurationLoader(private val plugin: PluginManager) {
         )
 
         kitRequirements = cfg.getBoolean("kit-requirements.enabled", true)
+
+        cooldownResetOnDeath = cfg.getBoolean("cooldown-reset-on-death", false)
+
+        val streakRewards = ArrayList<StreakReward>()
+        for (map in cfg.getMapList("streak-rewards.rewards")) {
+            val streak = (map["streak"] as? Number)?.toLong()?.takeIf { it > 0L } ?: run {
+                plugin.logger.warning("A streak reward needs a positive 'streak' value, ignoring it.")
+                null
+            } ?: continue
+            streakRewards += StreakReward(
+                streak = streak,
+                repeat = map["repeat"] as? Boolean ?: false,
+                coins = ((map["coins"] as? Number)?.toDouble() ?: 0.0).coerceAtLeast(0.0),
+                xp = ((map["xp"] as? Number)?.toLong() ?: 0L).coerceAtLeast(0L),
+                commands = (map["commands"] as? List<*>)?.map { it.toString() } ?: emptyList(),
+                broadcast = map["broadcast"]?.toString().orEmpty()
+            )
+        }
+        streaks = StreakSettings(
+            enabled = cfg.getBoolean("streak-rewards.enabled", false),
+            rewards = streakRewards
+        )
     }
 
     private companion object {

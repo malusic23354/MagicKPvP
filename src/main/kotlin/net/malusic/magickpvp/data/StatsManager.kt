@@ -1,5 +1,6 @@
 package net.malusic.magickpvp
 
+import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
@@ -88,6 +89,39 @@ class StatsManager(private val plugin: PluginManager) : Listener {
             stats.bestStreak = stats.streak
             val best = stats.bestStreak
             plugin.data.write { it.setBestStreak(killerId, best) }
+        }
+        rewardStreak(killer, stats.streak)
+    }
+
+    private fun rewardStreak(killer: Player, streak: Long) {
+        val settings = plugin.configuration.streaks
+        if (!settings.enabled) return
+
+        for (reward in settings.rewards) {
+            val hit = if (reward.repeat) streak % reward.streak == 0L else streak == reward.streak
+            if (!hit) continue
+
+            if (reward.coins > 0.0 && plugin.economy.available) plugin.economy.deposit(killer, reward.coins)
+            if (reward.xp > 0L) plugin.experience.add(killer, reward.xp)
+
+            for (command in reward.commands) {
+                val line = command.replace("{player}", killer.name).replace("{streak}", streak.toString())
+                plugin.server.dispatchCommand(plugin.server.consoleSender, line)
+            }
+
+            if (reward.coins > 0.0 || reward.xp > 0L) {
+                plugin.messages.send(
+                    killer, "streak-reward",
+                    "streak" to streak.toString(),
+                    "coins" to plugin.economy.format(reward.coins),
+                    "xp" to reward.xp.toString()
+                )
+            }
+            if (reward.broadcast.isNotBlank()) {
+                plugin.server.broadcast(
+                    plugin.messages.parse(reward.broadcast, "player" to killer.name, "streak" to streak.toString())
+                )
+            }
         }
     }
 

@@ -82,6 +82,7 @@ class KitManager(private val plugin: PluginManager) : Listener {
             return KitResult.IN_COMBAT
         }
 
+        plugin.abilities.releaseAll(player.uniqueId)
         clearInventory(player)
 
         for (stack in plugin.itemLoader.build(kit)) {
