@@ -305,6 +305,9 @@ voidwalker:
   price:
     buy: 5000
     sell: 2500
+  requirement:
+    xp: 500
+    kills: 10
 
   singularity:
     name: "<dark_purple>Singularity"

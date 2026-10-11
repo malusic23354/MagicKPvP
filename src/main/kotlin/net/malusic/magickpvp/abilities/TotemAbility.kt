@@ -5,32 +5,22 @@ import org.bukkit.Material
 import org.bukkit.Particle
 import org.bukkit.attribute.Attribute
 import org.bukkit.entity.ArmorStand
-import org.bukkit.entity.Entity
 import org.bukkit.entity.Player
-import org.bukkit.entity.Projectile
-import org.bukkit.event.EventHandler
-import org.bukkit.event.EventPriority
-import org.bukkit.event.Listener
-import org.bukkit.event.entity.EntityDamageByEntityEvent
-import org.bukkit.event.entity.EntityDamageEvent
-import org.bukkit.event.entity.PlayerDeathEvent
-import org.bukkit.event.player.PlayerArmorStandManipulateEvent
-import org.bukkit.event.world.EntitiesLoadEvent
 import org.bukkit.inventory.ItemStack
 import java.util.UUID
 import kotlin.math.cos
 import kotlin.math.sin
 
-class TotemAbility(private val plugin: PluginManager) : AbilityBehavior, Listener {
+internal class TotemAbility(plugin: PluginManager) : StandAbility<TotemAbility.Totem>(plugin, "totem") {
 
     override val key = "totem"
 
-    private class Totem(
-        val stand: ArmorStand,
-        val owner: UUID,
+    internal class Totem(
+        stand: ArmorStand,
+        owner: UUID,
+        health: Double,
         val ability: Ability,
         val expiresAt: Long,
-        var health: Double,
         var nextPulse: Long,
         val radius: Double,
         val intervalMs: Long,
@@ -38,24 +28,19 @@ class TotemAbility(private val plugin: PluginManager) : AbilityBehavior, Listene
         val effects: List<TimedEffect>,
         val heal: Double,
         val damage: Double
-    )
+    ) : StandAbility.Tracked(stand, owner, health)
 
-    private val temp = TempEntities(plugin, "totem")
-    private val byOwner = HashMap<UUID, Totem>()
-    private val byStand = HashMap<UUID, Totem>()
-
-    override fun activate(context: AbilityContext, ability: Ability, index: Int) {
+    override fun activate(context: AbilityContext, ability: Ability, index: Int): Boolean {
         val owner = context.player
         val cfg = ability.config
 
-        byOwner[owner.uniqueId]?.let { remove(it, false) }
+        replace(owner.uniqueId)
 
         val material = cfg.getString("material")?.let { Material.matchMaterial(it) }
             ?.takeIf { it.isItem && !it.isAir } ?: Material.TOTEM_OF_UNDYING
         val now = System.currentTimeMillis()
-        val location = owner.location
 
-        val stand = owner.world.spawn(location, ArmorStand::class.java) { s ->
+        val stand = spawnStand(owner) { s ->
             s.isVisible = false
             s.isSmall = cfg.getBoolean("small", false)
             s.setBasePlate(false)
@@ -66,32 +51,32 @@ class TotemAbility(private val plugin: PluginManager) : AbilityBehavior, Listene
                 s.isCustomNameVisible = true
             }
         }
-        temp.mark(stand)
 
         val effectDefault = cfg.ticks("effect-duration", 60L)
-        val totem = Totem(
-            stand = stand,
-            owner = owner.uniqueId,
-            ability = ability,
-            expiresAt = now + cfg.ticks("lifetime", 300L) * 50L,
-            health = cfg.getDouble("health", 20.0).coerceAtLeast(1.0),
-            nextPulse = now,
-            radius = cfg.getDouble("radius", 6.0).coerceAtLeast(1.0),
-            intervalMs = cfg.ticks("interval", 20L) * 50L,
-            affects = cfg.getString("affects")?.trim()?.lowercase() ?: "owner",
-            effects = cfg.timedEffects("effects", effectDefault) {
-                plugin.logger.warning("Totem on '${context.itemId}' has an unknown effect '$it'.")
-            },
-            heal = cfg.getDouble("heal", 0.0).coerceAtLeast(0.0),
-            damage = cfg.getDouble("damage", 0.0).coerceAtLeast(0.0)
+        track(
+            Totem(
+                stand = stand,
+                owner = owner.uniqueId,
+                health = cfg.getDouble("health", 20.0).coerceAtLeast(1.0),
+                ability = ability,
+                expiresAt = now + cfg.ticks("lifetime", 300L) * 50L,
+                nextPulse = now,
+                radius = cfg.getDouble("radius", 6.0).coerceAtLeast(1.0),
+                intervalMs = cfg.ticks("interval", 20L) * 50L,
+                affects = cfg.getString("affects")?.trim()?.lowercase() ?: "owner",
+                effects = cfg.timedEffects("effects", effectDefault) {
+                    plugin.logger.warning("Totem on '${context.itemId}' has an unknown effect '$it'.")
+                },
+                heal = cfg.getDouble("heal", 0.0).coerceAtLeast(0.0),
+                damage = cfg.getDouble("damage", 0.0).coerceAtLeast(0.0)
+            )
         )
-        byOwner[owner.uniqueId] = totem
-        byStand[stand.uniqueId] = totem
+        return true
     }
 
     override fun tick() {
         val now = System.currentTimeMillis()
-        for (totem in byOwner.values.toList()) {
+        for (totem in all()) {
             val owner = plugin.server.getPlayer(totem.owner)
             if (!totem.stand.isValid || owner == null || owner.isDead || now >= totem.expiresAt) {
                 remove(totem, true)
@@ -142,47 +127,7 @@ class TotemAbility(private val plugin: PluginManager) : AbilityBehavior, Listene
         }
     }
 
-    private fun remove(totem: Totem, effect: Boolean) {
-        byOwner.remove(totem.owner)
-        byStand.remove(totem.stand.uniqueId)
-        if (effect && totem.stand.isValid) {
-            totem.stand.world.spawnParticle(Particle.POOF, totem.stand.location.add(0.0, 1.0, 0.0), 10, 0.2, 0.3, 0.2, 0.02)
-        }
-        totem.stand.remove()
-    }
-
-    override fun release(playerId: UUID) {
-        byOwner[playerId]?.let { remove(it, false) }
-    }
-
-    override fun reset() {
-        byOwner.values.toList().forEach { remove(it, false) }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST)
-    fun onDamage(event: EntityDamageEvent) {
-        val totem = byStand[event.entity.uniqueId] ?: return
-        if (event.isCancelled) return
-        event.isCancelled = true
-
-        val raw = (event as? EntityDamageByEntityEvent)?.damager
-        val source: Entity? = if (raw is Projectile) raw.shooter as? Entity else raw
-        if (source !is Player || source.uniqueId == totem.owner) return
-
-        totem.health -= event.damage.coerceAtLeast(1.0)
-        if (totem.health <= 0.0) remove(totem, true)
-    }
-
-    @EventHandler
-    fun onManipulate(event: PlayerArmorStandManipulateEvent) {
-        if (byStand.containsKey(event.rightClicked.uniqueId)) event.isCancelled = true
-    }
-
-    @EventHandler
-    fun onOwnerDeath(event: PlayerDeathEvent) = release(event.entity.uniqueId)
-
-    @EventHandler
-    fun onEntitiesLoad(event: EntitiesLoadEvent) {
-        temp.sweep(event.entities) { byStand.containsKey(it.uniqueId) }
+    override fun puff(stand: ArmorStand) {
+        stand.world.spawnParticle(Particle.POOF, stand.location.add(0.0, 1.0, 0.0), 10, 0.2, 0.3, 0.2, 0.02)
     }
 }

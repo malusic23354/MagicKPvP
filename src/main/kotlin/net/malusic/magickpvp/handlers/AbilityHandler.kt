@@ -1,5 +1,7 @@
 package net.malusic.magickpvp
 
+import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.JoinConfiguration
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
@@ -9,14 +11,16 @@ import org.bukkit.event.block.Action
 import org.bukkit.event.entity.ProjectileHitEvent
 import org.bukkit.event.entity.ProjectileLaunchEvent
 import org.bukkit.event.player.PlayerEggThrowEvent
+import org.bukkit.event.player.PlayerInteractAtEntityEvent
+import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.scheduler.BukkitTask
-import org.bukkit.event.player.PlayerInteractAtEntityEvent
-import org.bukkit.event.player.PlayerInteractEntityEvent
+import java.util.Locale
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 class AbilityHandler(private val plugin: PluginManager) : Listener {
 
@@ -24,7 +28,8 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
     private val actions = AbilityActions(plugin)
     private val projectileKey = NamespacedKey(plugin, "projectile_item")
-    private val cooldowns = HashMap<Pair<UUID, String>, Long>()
+    private val cooldowns = ConcurrentHashMap<UUID, ConcurrentHashMap<String, Long>>()
+    private val cooling = HashMap<UUID, HashSet<String>>()
     private val notices = HashMap<Pair<UUID, String>, Long>()
     private var task: BukkitTask? = null
 
@@ -60,8 +65,24 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
     fun reset() {
         cooldowns.clear()
+        cooling.clear()
         notices.clear()
         registry.all().forEach { it.reset() }
+    }
+
+    fun cooldownLeft(uuid: UUID, itemId: String): Long {
+        val expiresAt = cooldowns[uuid]?.get(itemId) ?: return 0L
+        val left = expiresAt - System.currentTimeMillis()
+        return if (left > 0L) left else 0L
+    }
+
+    fun cooldownReduction(player: Player): Int {
+        val settings = plugin.configuration.cooldownReduction
+        if (!settings.enabled) return 0
+        val best = settings.entries
+            .filter { player.hasPermission(it.permission) }
+            .maxOfOrNull { it.percent } ?: 0
+        return best.coerceIn(0, settings.maxPercent)
     }
 
     private fun isRangedWeapon(material: Material): Boolean =
@@ -84,21 +105,20 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         }
     }
 
-    private fun startCooldown(player: Player, itemId: String, custom: CustomItem): Long {
-        val now = System.currentTimeMillis()
-        val key = player.uniqueId to itemId
-        val expiresAt = cooldowns[key] ?: 0L
-        if (expiresAt > now) return expiresAt - now
-
-        if (custom.cooldownTicks > 0L) cooldowns[key] = now + custom.cooldownTicks * 50L
-        return 0L
+    private fun startCooldown(player: Player, itemId: String, custom: CustomItem) {
+        if (custom.cooldownTicks <= 0L) return
+        val ticks = (custom.cooldownTicks * (100 - cooldownReduction(player)) / 100L).coerceAtLeast(1L)
+        cooldowns.getOrPut(player.uniqueId) { ConcurrentHashMap() }[itemId] =
+            System.currentTimeMillis() + ticks * 50L
     }
 
-    private fun activateAbilities(player: Player, itemId: String, custom: CustomItem) {
+    private fun activateAbilities(player: Player, itemId: String, custom: CustomItem): Boolean {
         val context = AbilityContext(player, itemId, custom)
+        var used = false
         for ((index, ability) in custom.abilities.withIndex()) {
-            registry.get(ability.type)?.activate(context, ability, index)
+            if (registry.get(ability.type)?.activate(context, ability, index) == true) used = true
         }
+        return used
     }
 
     private fun add(behavior: AbilityBehavior) {
@@ -133,7 +153,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
         if (!canUse(player)) return
 
-        val left = startCooldown(player, itemId, custom)
+        val left = cooldownLeft(player.uniqueId, itemId)
         if (left > 0L) {
             event.isCancelled = true
             player.sendMessage(
@@ -146,17 +166,85 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
             return
         }
 
-        activateAbilities(player, itemId, custom)
+        if (activateAbilities(player, itemId, custom)) startCooldown(player, itemId, custom)
     }
 
     private fun tick() {
+        val display = plugin.configuration.cooldownDisplay
+        val now = System.currentTimeMillis()
         for (player in plugin.server.onlinePlayers) {
-            if (!player.isDead && plugin.kits.hasActiveKit(player)) {
-                applyPassive(player)
+            if (player.isDead || !plugin.kits.hasActiveKit(player)) continue
+            applyPassive(player)
+            cooldowns[player.uniqueId]?.let { map ->
+                if (map.isNotEmpty()) map.values.removeIf { it <= now }
             }
+            if (display.enabled) showCooldowns(player, display)
         }
         registry.all().forEach { it.tick() }
     }
+
+    private fun showCooldowns(player: Player, display: CooldownDisplaySettings) {
+        val uuid = player.uniqueId
+        val active = cooldowns[uuid]
+        val trail = cooling[uuid]
+        if ((active == null || active.isEmpty()) && (trail == null || trail.isEmpty())) return
+
+        when (display.mode) {
+            CooldownDisplayMode.HELD -> showHeld(player, display)
+            CooldownDisplayMode.ALL -> showAll(player)
+        }
+    }
+
+    private fun showHeld(player: Player, display: CooldownDisplaySettings) {
+        val uuid = player.uniqueId
+        val itemId = plugin.itemLoader.itemId(player.inventory.itemInMainHand)
+        val custom = plugin.itemLoader.piece(itemId)
+        if (itemId == null || custom == null) {
+            cooling.remove(uuid)
+            return
+        }
+
+        val trail = cooling.getOrPut(uuid) { HashSet() }
+        trail.retainAll(setOf(itemId))
+
+        val left = cooldownLeft(uuid, itemId)
+        val name = plugin.messages.plain(custom.name)
+        if (left > 0L) {
+            trail.add(itemId)
+            player.sendActionBar(
+                plugin.messages.parse(
+                    plugin.messages.raw("cooldown-bar"),
+                    "item" to name,
+                    "time" to formatTime(left)
+                )
+            )
+        } else if (trail.remove(itemId) && display.showReady) {
+            player.sendActionBar(plugin.messages.parse(plugin.messages.raw("cooldown-ready"), "item" to name))
+        }
+    }
+
+    private fun showAll(player: Player) {
+        val active = cooldowns[player.uniqueId] ?: return
+        val now = System.currentTimeMillis()
+        val parts = active.entries
+            .filter { it.value > now }
+            .mapNotNull { (itemId, expiresAt) ->
+                val custom = plugin.itemLoader.piece(itemId) ?: return@mapNotNull null
+                plugin.messages.parse(
+                    plugin.messages.raw("cooldown-bar"),
+                    "item" to plugin.messages.plain(custom.name),
+                    "time" to formatTime(expiresAt - now)
+                )
+            }
+        if (parts.isEmpty()) return
+        player.sendActionBar(
+            Component.join(JoinConfiguration.separator(plugin.messages.parse("<dark_gray> | ")), parts)
+        )
+    }
+
+    private fun formatTime(millis: Long): String =
+        if (millis < 10_000L) String.format(Locale.US, "%.1f", millis / 1000.0)
+        else ((millis + 999L) / 1000L).toString()
 
     private fun applyPassive(player: Player) {
         val equipped = sequenceOf(
@@ -197,7 +285,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
         if (!canUse(shooter)) return
 
-        if (startCooldown(shooter, itemId, custom) > 0L) {
+        if (cooldownLeft(shooter.uniqueId, itemId) > 0L) {
             notify(shooter, itemId, "ability-cooldown")
             return
         }
@@ -206,7 +294,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
             projectile.persistentDataContainer.set(projectileKey, PersistentDataType.STRING, itemId)
         }
 
-        activateAbilities(shooter, itemId, custom)
+        if (activateAbilities(shooter, itemId, custom)) startCooldown(shooter, itemId, custom)
     }
 
     @EventHandler
@@ -234,7 +322,8 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
     @EventHandler
     fun onQuit(event: PlayerQuitEvent) {
         val uuid = event.player.uniqueId
-        cooldowns.keys.removeIf { it.first == uuid }
+        cooldowns.remove(uuid)
+        cooling.remove(uuid)
         notices.keys.removeIf { it.first == uuid }
         registry.all().forEach { it.release(uuid) }
     }
@@ -255,11 +344,12 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
         if (!canUse(player)) return
 
-        if (startCooldown(player, itemId, custom) > 0L) {
+        if (cooldownLeft(player.uniqueId, itemId) > 0L) {
             notify(player, itemId, "ability-cooldown")
             return
         }
 
-        clickAbilities.forEach { registry.get(it.type)?.targetClicked(it, target, player) }
+        val used = clickAbilities.map { registry.get(it.type)?.targetClicked(it, target, player) == true }.any { it }
+        if (used) startCooldown(player, itemId, custom)
     }
 }

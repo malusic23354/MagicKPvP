@@ -27,10 +27,11 @@ class RadiusAbility(
 
     private val active = HashMap<ActiveKey, Active>()
 
-    override fun activate(context: AbilityContext, ability: Ability, index: Int) {
+    override fun activate(context: AbilityContext, ability: Ability, index: Int): Boolean {
         val duration = if (ability.durationTicks > 0L) ability.durationTicks else Long.MAX_VALUE
         val key = ActiveKey(context.player.uniqueId, context.itemId, index)
         active[key] = Active(key, ability, duration)
+        return true
     }
 
     override fun release(playerId: UUID) {

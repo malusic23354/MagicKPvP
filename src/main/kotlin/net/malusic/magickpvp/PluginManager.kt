@@ -19,11 +19,15 @@ class PluginManager : JavaPlugin() {
         private set
     lateinit var experience: ExperienceManager
         private set
+    lateinit var stats: StatsManager
+        private set
     lateinit var combat: CombatManager
         private set
     lateinit var abilities: AbilityHandler
         private set
     lateinit var kitMenu: KitMenu
+        private set
+    lateinit var menuItem: MenuItemManager
         private set
     lateinit var rewards: RewardManager
         private set
@@ -51,9 +55,11 @@ class PluginManager : JavaPlugin() {
         data = DataManager(this)
         kits = KitManager(this)
         experience = ExperienceManager(this)
+        stats = StatsManager(this)
         combat = CombatManager(this)
         abilities = AbilityHandler(this)
         kitMenu = KitMenu(this)
+        menuItem = MenuItemManager(this)
         rewards = RewardManager(this)
         protection = ItemProtection(this)
 
@@ -79,12 +85,15 @@ class PluginManager : JavaPlugin() {
             }
         }
         syncAllRanks()
+        stats.start()
 
         server.pluginManager.registerEvents(data, this)
         server.pluginManager.registerEvents(abilities, this)
         server.pluginManager.registerEvents(kits, this)
         server.pluginManager.registerEvents(kitMenu, this)
+        server.pluginManager.registerEvents(menuItem, this)
         server.pluginManager.registerEvents(experience, this)
+        server.pluginManager.registerEvents(stats, this)
         server.pluginManager.registerEvents(rewards, this)
         server.pluginManager.registerEvents(combat, this)
         server.pluginManager.registerEvents(protection, this)
@@ -96,6 +105,14 @@ class PluginManager : JavaPlugin() {
             it.tabCompleter = handler
         }
 
+        if (server.pluginManager.isPluginEnabled("PlaceholderAPI")) {
+            try {
+                PlaceholderHook.install(this)
+            } catch (failure: Throwable) {
+                logger.log(Level.WARNING, "Could not register the PlaceholderAPI expansion: ${failure.message}", failure)
+            }
+        }
+
         if (!economy.available) {
             logger.warning("No Vault economy provider found yet, buying and selling kits and coin rewards will not work until one is loaded.")
         }
@@ -104,6 +121,7 @@ class PluginManager : JavaPlugin() {
 
     override fun onDisable() {
         if (::abilities.isInitialized) abilities.stop()
+        if (::stats.isInitialized) stats.stop()
         if (::data.isInitialized) data.close()
         logger.info("Ah shi- i lost power.")
     }
@@ -114,12 +132,16 @@ class PluginManager : JavaPlugin() {
         itemLoader.load()
         kitMenu.rebuild()
         abilities.reset()
+        menuItem.refresh()
 
         ranks?.load()
         if (configuration.ranks.enabled && ranks == null) {
             logger.warning("ranks.enabled is true but LuckPerms is not installed, ranks will not be applied.")
         }
-        if (data.isOpen) syncAllRanks()
+        if (data.isOpen) {
+            syncAllRanks()
+            stats.start()
+        }
 
         for (kit in configuration.kits) {
             if (itemLoader.get(kit.id) == null) {

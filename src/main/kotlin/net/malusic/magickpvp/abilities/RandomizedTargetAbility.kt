@@ -10,7 +10,7 @@ class RandomizedTargetAbility(
     override val key = "randomized_target"
     override val aliases = setOf("randomizedtarget")
 
-    override fun activate(context: AbilityContext, ability: Ability, index: Int) {
+    override fun activate(context: AbilityContext, ability: Ability, index: Int): Boolean {
         val inflictor = context.player
         val rangeSquared = ability.range * ability.range
         val candidates = inflictor.world.players.filter { target ->
@@ -20,10 +20,11 @@ class RandomizedTargetAbility(
                 plugin.combat.abilitiesAllowed(target) &&
                 target.location.distanceSquared(inflictor.location) <= rangeSquared
         }
-        val target = candidates.randomOrNull() ?: return
+        val target = candidates.randomOrNull() ?: return false
 
         actions.runCommands(ability, target, inflictor)
         actions.sendMessages(ability, target, inflictor)
         actions.burst(ability, target)
+        return true
     }
 }

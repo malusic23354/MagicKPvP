@@ -1,11 +1,11 @@
 name: MagicKPvP
-version: '1.1.2'
+version: '1.1.3'
 main: net.malusic.magickpvp.PluginManager
 api-version: '1.21.11'
 description: MagicKPvP is a plugin for kitpvp servers with custom kits and cool abilities.
 author: Malusic
 depend: [Vault]
-softdepend: [WorldGuard, LuckPerms]
+softdepend: [WorldGuard, LuckPerms, PlaceholderAPI]
 libraries:
   - org.jetbrains.kotlin:kotlin-stdlib:2.2.20
   - com.zaxxer:HikariCP:6.3.0
@@ -13,7 +13,7 @@ libraries:
 commands:
   magickpvp:
     description: Main MagicKPvP command.
-    usage: /<command> <menu|reload|select|buy|sell|info|xp>
+    usage: /<command> <menu|reload|select|buy|sell|info|xp|stats|top>
     aliases: [mkp]
     permission: magickpvp.command
 
@@ -42,6 +42,12 @@ permissions:
   magickpvp.xp.admin:
     description: Allows adding, removing and setting player XP.
     default: op
+  magickpvp.stats:
+    description: Allows viewing player stats.
+    default: true
+  magickpvp.top:
+    description: Allows viewing the leaderboards.
+    default: true
   magickpvp.reload:
     description: Allows reloading all configuration files.
     default: op
@@ -63,6 +69,8 @@ permissions:
       magickpvp.info: true
       magickpvp.xp: true
       magickpvp.xp.admin: true
+      magickpvp.stats: true
+      magickpvp.top: true
       magickpvp.reload: true
       magickpvp.bypass: true
       magickpvp.kit.*: true

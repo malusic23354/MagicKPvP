@@ -22,17 +22,17 @@ class SilenceAbility(private val plugin: PluginManager) : AbilityBehavior, Liste
         return false
     }
 
-    override fun activate(context: AbilityContext, ability: Ability, index: Int) {
+    override fun activate(context: AbilityContext, ability: Ability, index: Int): Boolean {
         val owner = context.player
         val cfg = ability.config
         when (cfg.getString("mode", "radius")?.trim()?.lowercase()) {
-            "projectile" -> return
+            "projectile" -> return false
             "auto" -> {
                 val range = cfg.getDouble("range", 20.0).coerceAtLeast(1.0)
                 val eye = owner.eyeLocation
                 val target = owner.world.rayTraceEntities(eye, eye.direction, range, cfg.getDouble("aim", 1.0)) {
                     it is Player && it.uniqueId != owner.uniqueId
-                }?.hitEntity as? Player ?: return
+                }?.hitEntity as? Player ?: return false
                 silence(owner, target, ability)
             }
             else -> {
@@ -48,6 +48,7 @@ class SilenceAbility(private val plugin: PluginManager) : AbilityBehavior, Liste
             }
         }
         if (cfg.getBoolean("silence-self", false)) silence(owner, owner, ability)
+        return true
     }
 
     override fun projectileHit(ability: Ability, target: Player, inflictor: Player) {

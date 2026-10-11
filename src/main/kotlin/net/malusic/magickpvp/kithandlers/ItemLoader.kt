@@ -62,22 +62,21 @@ data class CustomItem(
     val glow: Boolean,
     val attributes: List<AttributeSpec>,
     val enchantments: Map<Enchantment, Int>,
-    val buyPrice: Double,
-    val sellPrice: Double,
     val lore: List<String>,
     val cooldownTicks: Long,
     val abilities: List<Ability>,
-    val potion: PotionSpec?,
-) {
-    val ability: Ability? get() = abilities.firstOrNull()
-}
+    val potion: PotionSpec?
+)
+
+data class KitRequirement(val xp: Long, val kills: Long)
 
 data class CustomKit(
     val id: String,
     val name: String,
     val buyPrice: Double,
     val sellPrice: Double,
-    val pieces: Map<String, CustomItem>
+    val pieces: Map<String, CustomItem>,
+    val requirement: KitRequirement?
 ) {
     fun displayPiece(preferred: String?): CustomItem? =
         preferred?.let { pieces[it] ?: pieces.entries.firstOrNull { e -> e.key.equals(it, true) }?.value }
@@ -118,7 +117,7 @@ class ItemLoader(private val plugin: PluginManager) {
             val section = yaml.getConfigurationSection(id) ?: continue
             val pieceMap = LinkedHashMap<String, CustomItem>()
             for (pieceKey in section.getKeys(false)) {
-                if (pieceKey.equals("name", true) || pieceKey.equals("price", true)) continue
+                if (pieceKey.equals("name", true) || pieceKey.equals("price", true) || pieceKey.equals("requirement", true)) continue
                 val pieceSection = section.getConfigurationSection(pieceKey) ?: continue
                 val parsed = parseItem("$id:$pieceKey", section.getString("name") ?: id, pieceSection) ?: continue
                 pieceMap[pieceKey] = parsed
@@ -130,14 +129,12 @@ class ItemLoader(private val plugin: PluginManager) {
             }
             loaded[id] = CustomKit(id, section.getString("name") ?: id,
                 section.getDouble("price.buy", 0.0).coerceAtLeast(0.0),
-                section.getDouble("price.sell", 0.0).coerceAtLeast(0.0), pieceMap)
+                section.getDouble("price.sell", 0.0).coerceAtLeast(0.0), pieceMap, parseRequirement(section))
         }
         kits = loaded
         piecesById = allPieces
         plugin.logger.info("Loaded ${kits.size} kit(s) containing ${piecesById.size} item(s) from items.yml.")
     }
-
-    fun build(id: String, tagged: Boolean = true): List<ItemStack>? = get(id)?.let { build(it, tagged) }
 
     fun build(kit: CustomKit, tagged: Boolean = true): List<ItemStack> = kit.pieces.values.map { build(it, tagged) }
 
@@ -209,6 +206,13 @@ class ItemLoader(private val plugin: PluginManager) {
         if (custom.lore.isNotEmpty()) meta.lore(custom.lore.map { plugin.messages.parse(it) })
         stack.itemMeta = meta
         return stack
+    }
+
+    private fun parseRequirement(section: ConfigurationSection): KitRequirement? {
+        val requirement = section.getConfigurationSection("requirement") ?: return null
+        val xp = requirement.getLong("xp", 0L).coerceAtLeast(0L)
+        val kills = requirement.getLong("kills", 0L).coerceAtLeast(0L)
+        return if (xp == 0L && kills == 0L) null else KitRequirement(xp, kills)
     }
 
     private fun safeKey(raw: String): String = raw.lowercase().replace(Regex("[^a-z0-9._-]"), "_")
@@ -301,8 +305,6 @@ class ItemLoader(private val plugin: PluginManager) {
             glow = s.getBoolean("glow", false),
             attributes = attributes,
             enchantments = enchantments,
-            buyPrice = 0.0,
-            sellPrice = 0.0,
             lore = s.getStringList("lore"),
             cooldownTicks = parseTicks(s.getString("cooldown"), 0L),
             abilities = abilities

@@ -27,17 +27,17 @@ class RewindAbility(private val plugin: PluginManager) : AbilityBehavior, Listen
         while (samples.isNotEmpty() && now - samples.first.time > keep) samples.removeFirst()
     }
 
-    override fun activate(context: AbilityContext, ability: Ability, index: Int) {
+    override fun activate(context: AbilityContext, ability: Ability, index: Int): Boolean {
         val player = context.player
         val cfg = ability.config
-        val samples = history[player.uniqueId] ?: return
+        val samples = history[player.uniqueId] ?: return false
 
         val now = System.currentTimeMillis()
         val target = now - cfg.ticks("seconds", 100L) * 50L
-        val sample = samples.firstOrNull { it.time >= target } ?: samples.peekFirst() ?: return
+        val sample = samples.firstOrNull { it.time >= target } ?: samples.peekFirst() ?: return false
 
-        if (sample.location.world != player.world && !cfg.getBoolean("cross-world", false)) return
-        if (!plugin.combat.abilitiesAllowed(player)) return
+        if (sample.location.world != player.world && !cfg.getBoolean("cross-world", false)) return false
+        if (!plugin.combat.abilitiesAllowed(player)) return false
 
         val from = player.location.clone()
         val destination = sample.location.clone().apply {
@@ -64,6 +64,7 @@ class RewindAbility(private val plugin: PluginManager) : AbilityBehavior, Listen
         destination.world.spawnParticle(particle, destination.clone().add(0.0, 1.0, 0.0), amount, 0.3, 0.6, 0.3, 0.1)
 
         samples.clear()
+        return true
     }
 
     override fun release(playerId: UUID) {

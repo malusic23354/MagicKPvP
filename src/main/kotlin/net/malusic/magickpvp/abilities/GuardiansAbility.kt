@@ -41,7 +41,7 @@ class GuardiansAbility(private val plugin: PluginManager) : AbilityBehavior, Lis
     private val temp = TempEntities(plugin, "guardian")
     private val guardians = HashMap<UUID, Guardian>()
 
-    override fun activate(context: AbilityContext, ability: Ability, index: Int) {
+    override fun activate(context: AbilityContext, ability: Ability, index: Int): Boolean {
         val owner = context.player
         val cfg = ability.config
 
@@ -49,7 +49,7 @@ class GuardiansAbility(private val plugin: PluginManager) : AbilityBehavior, Lis
         val type = spawnable(rawType)
         if (type == null) {
             plugin.logger.warning("Guardians ability on '${context.itemId}' has an unknown or non-mob entity '$rawType'.")
-            return
+            return false
         }
 
         if (cfg.getBoolean("replace", true)) removeOwned(owner.uniqueId)
@@ -74,6 +74,7 @@ class GuardiansAbility(private val plugin: PluginManager) : AbilityBehavior, Lis
                 )
             }
         }
+        return true
     }
 
     private fun spawnable(raw: String): EntityType? {

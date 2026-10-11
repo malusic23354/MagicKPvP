@@ -49,6 +49,36 @@ data class CombatSettings(
     val blockKitSwitch: Boolean = true
 )
 
+data class MenuItemSettings(
+    val enabled: Boolean = true,
+    val slot: Int = 4,
+    val material: Material = Material.NETHER_STAR,
+    val name: String = "<gold>Kit Selector",
+    val lore: List<String> = emptyList(),
+    val glow: Boolean = true
+)
+
+data class StatsSettings(
+    val leaderboardSize: Int = 10,
+    val refreshSeconds: Int = 60
+)
+
+enum class CooldownDisplayMode { HELD, ALL }
+
+data class CooldownDisplaySettings(
+    val enabled: Boolean = true,
+    val mode: CooldownDisplayMode = CooldownDisplayMode.HELD,
+    val showReady: Boolean = true
+)
+
+data class CooldownReductionEntry(val permission: String, val percent: Int)
+
+data class CooldownReductionSettings(
+    val enabled: Boolean = false,
+    val maxPercent: Int = 75,
+    val entries: List<CooldownReductionEntry> = emptyList()
+)
+
 class ConfigurationLoader(private val plugin: PluginManager) {
 
     var enableMenu: Boolean = true
@@ -58,6 +88,8 @@ class ConfigurationLoader(private val plugin: PluginManager) {
     var loreNotOwned: String = "<gray>Click to buy for {price}!"
         private set
     var loreBought: String = "<gray>Click to select this kit!"
+        private set
+    var loreLocked: String = "<red>Requires {requirement}"
         private set
     var menuSize: Int = 54
         private set
@@ -80,6 +112,16 @@ class ConfigurationLoader(private val plugin: PluginManager) {
         private set
     var combat: CombatSettings = CombatSettings()
         private set
+    var menuItem: MenuItemSettings = MenuItemSettings()
+        private set
+    var statsSettings: StatsSettings = StatsSettings()
+        private set
+    var cooldownDisplay: CooldownDisplaySettings = CooldownDisplaySettings()
+        private set
+    var cooldownReduction: CooldownReductionSettings = CooldownReductionSettings()
+        private set
+    var kitRequirements: Boolean = true
+        private set
 
     fun load() {
         val file = File(plugin.dataFolder, "config.yml")
@@ -92,6 +134,7 @@ class ConfigurationLoader(private val plugin: PluginManager) {
             ?.takeIf { it.isItem } ?: Material.GRAY_DYE
         loreNotOwned = cfg.getString("lorenotowned") ?: "<gray>Click to buy for {price}!"
         loreBought = cfg.getString("lorebought") ?: "<gray>Click to select this kit!"
+        loreLocked = cfg.getString("lorelocked") ?: "<red>Requires {requirement}"
 
         val size = cfg.getInt("menu.size", 54)
         menuSize = if (size in 9..54 && size % 9 == 0) size else {
@@ -176,6 +219,46 @@ class ConfigurationLoader(private val plugin: PluginManager) {
             tagSeconds = cfg.getInt("combat.tag-seconds", 15).coerceAtLeast(0),
             blockKitSwitch = cfg.getBoolean("combat.block-kit-switch", true)
         )
+
+        val itemDefaults = MenuItemSettings()
+        menuItem = MenuItemSettings(
+            enabled = cfg.getBoolean("menu-item.enabled", itemDefaults.enabled),
+            slot = cfg.getInt("menu-item.slot", itemDefaults.slot).coerceIn(0, 35),
+            material = cfg.getString("menu-item.material")
+                ?.let { Material.matchMaterial(it) }
+                ?.takeIf { it.isItem && !it.isAir } ?: itemDefaults.material,
+            name = cfg.getString("menu-item.name") ?: itemDefaults.name,
+            lore = cfg.getStringList("menu-item.lore"),
+            glow = cfg.getBoolean("menu-item.glow", itemDefaults.glow)
+        )
+
+        statsSettings = StatsSettings(
+            leaderboardSize = cfg.getInt("stats.leaderboard-size", 10).coerceIn(1, 50),
+            refreshSeconds = cfg.getInt("stats.leaderboard-refresh-seconds", 60).coerceIn(5, 3600)
+        )
+
+        cooldownDisplay = CooldownDisplaySettings(
+            enabled = cfg.getBoolean("cooldown-display.enabled", true),
+            mode = when (cfg.getString("cooldown-display.mode")?.trim()?.lowercase()) {
+                "all" -> CooldownDisplayMode.ALL
+                else -> CooldownDisplayMode.HELD
+            },
+            showReady = cfg.getBoolean("cooldown-display.show-ready", true)
+        )
+
+        val reductionEntries = ArrayList<CooldownReductionEntry>()
+        for (map in cfg.getMapList("cooldown-reduction.entries")) {
+            val permission = map["permission"]?.toString()?.trim()?.takeIf { it.isNotEmpty() } ?: continue
+            val percent = ((map["percent"] as? Number)?.toInt() ?: continue).coerceIn(0, 100)
+            reductionEntries += CooldownReductionEntry(permission, percent)
+        }
+        cooldownReduction = CooldownReductionSettings(
+            enabled = cfg.getBoolean("cooldown-reduction.enabled", false),
+            maxPercent = cfg.getInt("cooldown-reduction.max-percent", 75).coerceIn(0, 100),
+            entries = reductionEntries
+        )
+
+        kitRequirements = cfg.getBoolean("kit-requirements.enabled", true)
     }
 
     private companion object {

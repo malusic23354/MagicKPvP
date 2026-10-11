@@ -46,9 +46,9 @@ class ChainLightningAbility(private val plugin: PluginManager) : AbilityBehavior
         )
     }
 
-    override fun activate(context: AbilityContext, ability: Ability, index: Int) {
+    override fun activate(context: AbilityContext, ability: Ability, index: Int): Boolean {
         val cfg = ability.config
-        if (cfg.getString("mode", "auto")?.trim()?.lowercase() == "projectile") return
+        if (cfg.getString("mode", "auto")?.trim()?.lowercase() == "projectile") return false
 
         val owner = context.player
         val range = cfg.getDouble("range", 20.0).coerceAtLeast(1.0)
@@ -58,9 +58,10 @@ class ChainLightningAbility(private val plugin: PluginManager) : AbilityBehavior
         val eye = owner.eyeLocation
         val first = owner.world.rayTraceEntities(eye, eye.direction, range, aim) {
             it is LivingEntity && it.uniqueId != owner.uniqueId && valid(it, owner, settings.mobs)
-        }?.hitEntity as? LivingEntity ?: return
+        }?.hitEntity as? LivingEntity ?: return false
 
         start(owner, first, settings, eye)
+        return true
     }
 
     override fun projectileHit(ability: Ability, target: Player, inflictor: Player) {

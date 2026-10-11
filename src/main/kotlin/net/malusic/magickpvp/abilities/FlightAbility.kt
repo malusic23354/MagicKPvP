@@ -12,8 +12,10 @@ class FlightAbility(private val plugin: PluginManager) : AbilityBehavior {
 
     private val original = HashMap<UUID, Pair<Boolean, Boolean>>()
 
-    override fun activate(context: AbilityContext, ability: Ability, index: Int) {
+    override fun activate(context: AbilityContext, ability: Ability, index: Int): Boolean {
+        if (ability.durationTicks <= 0L || !context.player.isOnline) return false
         giveTemporaryFlight(context.player, ability.durationTicks)
+        return true
     }
 
     override fun release(playerId: UUID) {

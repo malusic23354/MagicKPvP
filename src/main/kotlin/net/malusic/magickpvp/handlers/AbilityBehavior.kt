@@ -17,11 +17,11 @@ interface AbilityBehavior {
 
     val clickTarget: Boolean get() = false
 
-    fun activate(context: AbilityContext, ability: Ability, index: Int) {}
+    fun activate(context: AbilityContext, ability: Ability, index: Int): Boolean = true
 
     fun passive(player: Player, ability: Ability) {}
 
-    fun targetClicked(ability: Ability, target: Player, inflictor: Player) {}
+    fun targetClicked(ability: Ability, target: Player, inflictor: Player): Boolean = true
 
     fun projectileHit(ability: Ability, target: Player, inflictor: Player) {}
 

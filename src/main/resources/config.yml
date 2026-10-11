@@ -2,6 +2,7 @@ enablemenu: true
 materialnotowned: GRAY_DYE
 lorenotowned: '<gray>Click to buy for {price}!'
 lorebought: '<gray>Click to select this kit!'
+lorelocked: '<red>Requires {requirement}'
 
 storage:
   type: sqlite
@@ -41,6 +42,38 @@ ranks:
 combat:
   tag-seconds: 15
   block-kit-switch: true
+
+menu-item:
+  enabled: true
+  slot: 4
+  material: NETHER_STAR
+  name: "<gold>Kit Selector"
+  glow: true
+  lore:
+    - "<gray>Right click to choose a kit."
+
+stats:
+  leaderboard-size: 10
+  leaderboard-refresh-seconds: 60
+
+cooldown-display:
+  enabled: true
+  mode: held
+  show-ready: true
+
+cooldown-reduction:
+  enabled: true
+  max-percent: 75
+  entries:
+    - permission: magickpvp.cooldown.vip
+      percent: 10
+    - permission: group.knight
+      percent: 10
+    - permission: group.champion
+      percent: 20
+
+kit-requirements:
+  enabled: true
 
 menu:
   size: 36

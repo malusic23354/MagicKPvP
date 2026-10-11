@@ -19,7 +19,7 @@ class DashAbility(private val plugin: PluginManager) : AbilityBehavior, Listener
 
     private val dashes = HashMap<UUID, Dash>()
 
-    override fun activate(context: AbilityContext, ability: Ability, index: Int) {
+    override fun activate(context: AbilityContext, ability: Ability, index: Int): Boolean {
         val owner = context.player
         val cfg = ability.config
 
@@ -83,6 +83,7 @@ class DashAbility(private val plugin: PluginManager) : AbilityBehavior, Listener
         }, 1L, 1L)
 
         dashes[ownerId] = Dash(task, cfg.getBoolean("invulnerable", false))
+        return true
     }
 
     private fun hit(

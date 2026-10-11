@@ -5,13 +5,14 @@ plugins {
 }
 
 group = "net.malusic"
-version = "1.1.2"
+version = "1.1.3"
 
 repositories {
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
     maven("https://jitpack.io")
     maven("https://maven.enginehub.org/repo/")
+    maven("https://repo.extendedclip.com/releases/")
 }
 
 dependencies {
@@ -20,6 +21,7 @@ dependencies {
     compileOnly("com.zaxxer:HikariCP:6.3.0")
     compileOnly("net.luckperms:api:5.4")
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.9")
+    compileOnly("me.clip:placeholderapi:2.11.6")
 }
 
 tasks {

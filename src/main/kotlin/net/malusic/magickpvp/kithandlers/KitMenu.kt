@@ -186,9 +186,18 @@ class KitMenu(private val plugin: PluginManager) : Listener {
         val lore = (meta.lore() ?: emptyList()).toMutableList()
         placement.lore.forEach { lore += plugin.messages.parse(it) }
 
-        val status = if (owned) config.loreBought else config.loreNotOwned
+        val locked = !owned && !plugin.kits.requirementMet(player, custom)
+        val status = when {
+            owned -> config.loreBought
+            locked -> config.loreLocked
+            else -> config.loreNotOwned
+        }
         val price = if (owned) custom.sellPrice else custom.buyPrice
-        lore += plugin.messages.parse(status, "price" to plugin.economy.format(price))
+        lore += plugin.messages.parse(
+            status,
+            "price" to plugin.economy.format(price),
+            "requirement" to plugin.kits.requirementText(custom)
+        )
 
         meta.lore(lore)
         stack.itemMeta = meta

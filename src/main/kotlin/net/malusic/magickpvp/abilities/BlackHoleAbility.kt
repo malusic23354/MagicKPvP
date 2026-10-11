@@ -20,7 +20,7 @@ class BlackHoleAbility(private val plugin: PluginManager) : AbilityBehavior {
 
     private val holes = ArrayList<Hole>()
 
-    override fun activate(context: AbilityContext, ability: Ability, index: Int) {
+    override fun activate(context: AbilityContext, ability: Ability, index: Int): Boolean {
         val owner = context.player
         val cfg = ability.config
 
@@ -88,6 +88,7 @@ class BlackHoleAbility(private val plugin: PluginManager) : AbilityBehavior {
         holes += hole
 
         ability.particle?.let { owner.world.spawnParticle(Particle.PORTAL, center, 40, 0.5, 0.5, 0.5, 0.5) }
+        return true
     }
 
     private fun targets(
