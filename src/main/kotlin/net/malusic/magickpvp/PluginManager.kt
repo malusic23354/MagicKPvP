@@ -33,6 +33,12 @@ class PluginManager : JavaPlugin() {
         private set
     lateinit var protection: ItemProtection
         private set
+    lateinit var spawn: SpawnManager
+        private set
+    lateinit var arena: ArenaManager
+        private set
+    lateinit var arenaMenu: ArenaMenu
+        private set
 
     var ranks: RankManager? = null
         private set
@@ -62,6 +68,9 @@ class PluginManager : JavaPlugin() {
         menuItem = MenuItemManager(this)
         rewards = RewardManager(this)
         protection = ItemProtection(this)
+        spawn = SpawnManager(this)
+        arena = ArenaManager(this)
+        arenaMenu = ArenaMenu(this)
 
         if (server.pluginManager.isPluginEnabled("LuckPerms")) {
             ranks = RankManager(this)
@@ -97,6 +106,7 @@ class PluginManager : JavaPlugin() {
         server.pluginManager.registerEvents(rewards, this)
         server.pluginManager.registerEvents(combat, this)
         server.pluginManager.registerEvents(protection, this)
+        server.pluginManager.registerEvents(arenaMenu, this)
         abilities.start()
 
         getCommand("magickpvp")?.let {
@@ -104,6 +114,7 @@ class PluginManager : JavaPlugin() {
             it.setExecutor(handler)
             it.tabCompleter = handler
         }
+        getCommand("spawn")?.setExecutor(SpawnCommand(this))
 
         if (server.pluginManager.isPluginEnabled("PlaceholderAPI")) {
             try {
@@ -129,6 +140,8 @@ class PluginManager : JavaPlugin() {
     fun reloadAll() {
         messages.load()
         configuration.load()
+        spawn.load()
+        arena.load()
         itemLoader.load()
         kitMenu.rebuild()
         abilities.reset()

@@ -1,5 +1,5 @@
 name: MagicKPvP
-version: '1.1.4'
+version: '1.1.5'
 main: net.malusic.magickpvp.PluginManager
 api-version: '1.21.11'
 description: MagicKPvP is a plugin for kitpvp servers with custom kits and cool abilities.
@@ -13,9 +13,13 @@ libraries:
 commands:
   magickpvp:
     description: Main MagicKPvP command.
-    usage: /<command> <menu|reload|select|buy|sell|info|xp|stats|top>
+    usage: /<command> <menu|reload|select|buy|sell|info|xp|stats|top|spawn|setspawn|arena>
     aliases: [mkp]
     permission: magickpvp.command
+  spawn:
+    description: Teleport to spawn and reset your kit.
+    usage: /<command>
+    permission: magickpvp.spawn
 
 permissions:
   magickpvp.command:
@@ -48,6 +52,18 @@ permissions:
   magickpvp.top:
     description: Allows viewing the leaderboards.
     default: true
+  magickpvp.spawn:
+    description: Allows teleporting to spawn.
+    default: true
+  magickpvp.setspawn:
+    description: Allows setting the spawn point.
+    default: op
+  magickpvp.arena:
+    description: Allows teleporting to the arena.
+    default: true
+  magickpvp.arena.admin:
+    description: Allows adding, updating and removing arena spots.
+    default: op
   magickpvp.reload:
     description: Allows reloading all configuration files.
     default: op
@@ -71,6 +87,10 @@ permissions:
       magickpvp.xp.admin: true
       magickpvp.stats: true
       magickpvp.top: true
+      magickpvp.spawn: true
+      magickpvp.setspawn: true
+      magickpvp.arena: true
+      magickpvp.arena.admin: true
       magickpvp.reload: true
       magickpvp.bypass: true
       magickpvp.kit.*: true

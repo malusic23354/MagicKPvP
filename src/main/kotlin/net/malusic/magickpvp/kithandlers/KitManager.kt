@@ -112,6 +112,12 @@ class KitManager(private val plugin: PluginManager) : Listener {
         player.inventory.setItemInOffHand(null)
     }
 
+    fun deselect(player: Player) {
+        plugin.abilities.releaseAll(player.uniqueId)
+        clearInventory(player)
+        activeKit.remove(player.uniqueId)
+    }
+
     @EventHandler
     fun onPlayerDeath(event: PlayerDeathEvent) {
         event.drops.clear()

@@ -97,6 +97,8 @@ class ConfigurationLoader(private val plugin: PluginManager) {
 
     var enableMenu: Boolean = true
         private set
+    var arenaMode: ArenaMode = ArenaMode.SELECTION
+        private set
     var materialNotOwned: Material = Material.GRAY_DYE
         private set
     var loreNotOwned: String = "<gray>Click to buy for {price}!"
@@ -147,6 +149,15 @@ class ConfigurationLoader(private val plugin: PluginManager) {
         val cfg = YamlConfiguration.loadConfiguration(file)
 
         enableMenu = cfg.getBoolean("enablemenu", true)
+
+        arenaMode = when (val raw = cfg.getString("arenaMode")?.trim()?.lowercase()) {
+            null, "selection" -> ArenaMode.SELECTION
+            "randomized" -> ArenaMode.RANDOMIZED
+            else -> {
+                plugin.logger.warning("arenaMode must be 'selection' or 'randomized' (got '$raw'), using selection.")
+                ArenaMode.SELECTION
+            }
+        }
 
         materialNotOwned = cfg.getString("materialnotowned")?.let { Material.matchMaterial(it) }
             ?.takeIf { it.isItem } ?: Material.GRAY_DYE

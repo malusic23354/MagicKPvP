@@ -8,8 +8,9 @@ import org.bukkit.entity.Player
 
 class MagickPvpCommand(private val plugin: PluginManager) : CommandExecutor, TabCompleter {
 
-    private val subCommands = listOf("menu", "select", "buy", "sell", "info", "xp", "reload")
+    private val subCommands = listOf("menu", "select", "buy", "sell", "info", "xp", "stats", "top", "spawn", "setspawn", "arena", "reload")
     private val xpActions = listOf("add", "remove", "set")
+    private val arena = ArenaCommand(plugin)
 
     override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
         val messages = plugin.messages
@@ -49,6 +50,14 @@ class MagickPvpCommand(private val plugin: PluginManager) : CommandExecutor, Tab
                 }
             }
             "xp" -> handleXp(sender, args)
+            "stats" -> handleStats(sender, args)
+            "top" -> handleTop(sender, args)
+            "spawn" -> {
+                val player = sender as? Player ?: return playerOnly(sender)
+                plugin.spawn.teleport(player)
+            }
+            "setspawn" -> handleSetSpawn(sender, args)
+            "arena" -> arena.handle(sender, args)
             "select", "buy", "sell" -> {
                 val player = sender as? Player ?: return playerOnly(sender)
                 val kitId = args.getOrNull(1)
@@ -64,6 +73,89 @@ class MagickPvpCommand(private val plugin: PluginManager) : CommandExecutor, Tab
             }
         }
         return true
+    }
+
+    private fun handleStats(sender: CommandSender, args: Array<out String>) {
+        val messages = plugin.messages
+        val targetName = args.getOrNull(1)
+        val target = if (targetName == null) {
+            sender as? Player ?: run { playerOnly(sender); return }
+        } else {
+            plugin.server.getPlayerExact(targetName) ?: run {
+                messages.send(sender, "player-not-found", "player" to targetName)
+                return
+            }
+        }
+
+        val uuid = target.uniqueId
+        messages.send(sender, "stats-header", "player" to target.name)
+        messages.send(
+            sender, "stats-line",
+            "xp" to plugin.experience.get(uuid).toString(),
+            "kills" to plugin.stats.kills(uuid).toString(),
+            "deaths" to plugin.stats.deaths(uuid).toString(),
+            "kdr" to String.format(java.util.Locale.US, "%.2f", plugin.stats.kdr(uuid)),
+            "streak" to plugin.stats.streak(uuid).toString(),
+            "best" to plugin.stats.bestStreak(uuid).toString()
+        )
+    }
+
+    private fun handleTop(sender: CommandSender, args: Array<out String>) {
+        val messages = plugin.messages
+        val stat = args.getOrNull(1)?.lowercase() ?: "xp"
+        if (stat !in StatsManager.NAMES) {
+            messages.send(sender, "top-usage")
+            return
+        }
+
+        val entries = plugin.stats.top(stat)
+        if (entries.isEmpty()) {
+            messages.send(sender, "top-empty")
+            return
+        }
+
+        messages.send(sender, "top-header", "stat" to stat)
+        entries.forEachIndexed { index, entry ->
+            messages.send(
+                sender, "top-entry",
+                "rank" to (index + 1).toString(),
+                "player" to (plugin.server.getOfflinePlayer(entry.uuid).name ?: entry.uuid.toString()),
+                "value" to entry.value.toString()
+            )
+        }
+    }
+
+    private fun handleSetSpawn(sender: CommandSender, args: Array<out String>) {
+        val player = sender as? Player ?: run { playerOnly(sender); return }
+        val values = args.drop(1).map { it.toDoubleOrNull() }
+        if (values.any { it == null } || values.size !in setOf(0, 2, 3, 5)) {
+            plugin.messages.send(player, "spawn-usage")
+            return
+        }
+
+        val numbers = values.filterNotNull()
+        val target = player.location.clone()
+        when (numbers.size) {
+            2 -> {
+                target.yaw = numbers[0].toFloat()
+                target.pitch = numbers[1].toFloat()
+            }
+            3 -> {
+                target.x = numbers[0]
+                target.y = numbers[1]
+                target.z = numbers[2]
+            }
+            5 -> {
+                target.x = numbers[0]
+                target.y = numbers[1]
+                target.z = numbers[2]
+                target.yaw = numbers[3].toFloat()
+                target.pitch = numbers[4].toFloat()
+            }
+        }
+
+        plugin.spawn.set(target)
+        plugin.messages.send(player, "spawn-set", "location" to plugin.spawn.describe())
     }
 
     private fun handleXp(sender: CommandSender, args: Array<out String>) {
@@ -139,12 +231,32 @@ class MagickPvpCommand(private val plugin: PluginManager) : CommandExecutor, Tab
                 .filter { sender.hasPermission("magickpvp.$it") }
                 .filter { it.startsWith(args[0], ignoreCase = true) }
         }
+        if (args[0].equals("arena", ignoreCase = true)) {
+            return arena.complete(sender, args)
+        }
         if (args[0].equals("xp", ignoreCase = true) && sender.hasPermission("magickpvp.xp.admin")) {
             return when (args.size) {
                 2 -> xpActions.filter { it.startsWith(args[1], ignoreCase = true) }
                 3 -> plugin.server.onlinePlayers.map { it.name }.filter { it.startsWith(args[2], ignoreCase = true) }
                 else -> emptyList()
             }
+        }
+        if (args.size == 2 && args[0].equals("stats", ignoreCase = true)) {
+            return plugin.server.onlinePlayers.map { it.name }.filter { it.startsWith(args[1], ignoreCase = true) }
+        }
+        if (args.size == 2 && args[0].equals("top", ignoreCase = true)) {
+            return StatsManager.NAMES.filter { it.startsWith(args[1], ignoreCase = true) }
+        }
+        if (args[0].equals("setspawn", ignoreCase = true) && sender is Player && args.size in 2..6) {
+            val location = sender.location
+            val suggestion = when (args.size) {
+                2 -> location.blockX
+                3 -> location.blockY
+                4 -> location.blockZ
+                5 -> location.yaw.toInt()
+                else -> location.pitch.toInt()
+            }
+            return listOf(suggestion.toString())
         }
         if (args.size == 2 && sender is Player) {
             val candidates = when (args[0].lowercase()) {

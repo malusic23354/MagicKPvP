@@ -1,4 +1,5 @@
 enablemenu: true
+arenaMode: selection
 materialnotowned: GRAY_DYE
 lorenotowned: '<gray>Click to buy for {price}!'
 lorebought: '<gray>Click to select this kit!'
@@ -42,6 +43,10 @@ ranks:
 combat:
   tag-seconds: 15
   block-kit-switch: true
+
+spawn:
+  coordinates: 0, 100, 0
+  pitch: 0, 0
 
 menu-item:
   enabled: true
