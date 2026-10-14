@@ -20,6 +20,8 @@ MagicKPvP is a Paper Minecraft PvP plugin for configurable kits, custom item abi
 - Kit item protection so kit items cannot be dropped or stored.
 - SQLite or MySQL storage for purchases and XP.
 - WorldGuard region flag to disable abilities in selected areas.
+- A `/spawn` command that teleports players to a configurable spawn point and resets their kit.
+- An arena teleporter with random or menu-based spot selection.
 - Customizable messages and menu appearance, with live reload.
 
 ## Requirements
@@ -42,14 +44,14 @@ Kotlin and HikariCP are downloaded by the server at startup through the `librari
 2. Install Vault and an economy provider on your Paper server.
 3. Copy the built `MagicKPvP` JAR into the server's `plugins/` directory.
 4. Start the server once to generate the configuration files.
-5. Edit `plugins/MagicKPvP/items.yml`, `config.yml`, and `messages.yml` as needed.
+5. Edit `plugins/MagicKPvP/items.yml`, `config.yml`, `arena.yml`, and `messages.yml` as needed.
 6. Run `/magickpvp reload` or restart the server to load your changes.
 
 The plugin only copies its default files when they do not exist. To pick up new defaults after an update, delete or edit the old files in `plugins/MagicKPvP`.
 
 ## Commands
 
-The main command is `/magickpvp`, with `/mkp` as an alias.
+The main command is `/magickpvp`, with `/mkp` as an alias. `/spawn` is a shortcut for `/magickpvp spawn`.
 
 | Command | Description | Permission |
 | --- | --- | --- |
@@ -62,6 +64,10 @@ The main command is `/magickpvp`, with `/mkp` as an alias.
 | `/magickpvp xp <add\|remove\|set> <player> <amount>` | Change an online player's XP | `magickpvp.xp.admin` |
 | `/magickpvp stats [player]` | Show your stats or an online player's stats | `magickpvp.stats` |
 | `/magickpvp top [xp\|kills\|deaths\|streak]` | Show a leaderboard | `magickpvp.top` |
+| `/magickpvp spawn` or `/spawn` | Teleport to spawn and reset your kit | `magickpvp.spawn` |
+| `/magickpvp setspawn [x y z] [yaw pitch]` | Set the spawn point | `magickpvp.setspawn` |
+| `/magickpvp arena` | Open the arena menu or teleport to a random spot, depending on `arenaMode` | `magickpvp.arena` |
+| `/magickpvp arena <set\|add\|remove> <name> ...` | Manage arena spots | `magickpvp.arena.admin` |
 | `/magickpvp reload` | Reload plugin configuration | `magickpvp.reload` |
 
 ## Permissions
@@ -78,6 +84,10 @@ The main command is `/magickpvp`, with `/mkp` as an alias.
 | `magickpvp.xp.admin` | Operators | Add, remove, or set player XP |
 | `magickpvp.stats` | Everyone | View player stats |
 | `magickpvp.top` | Everyone | View the leaderboards |
+| `magickpvp.spawn` | Everyone | Teleport to spawn |
+| `magickpvp.setspawn` | Operators | Set the spawn point |
+| `magickpvp.arena` | Everyone | Use the arena teleporter |
+| `magickpvp.arena.admin` | Operators | Add, update, or remove arena spots |
 | `magickpvp.reload` | Operators | Reload configurations |
 | `magickpvp.bypass` | Operators | Ignore kit item protection |
 | `magickpvp.kit.*` | Nobody | Grants ownership of all kits |
@@ -90,14 +100,16 @@ A player owns a kit if they bought it or have its `magickpvp.kit.<id>` permissio
 
 ## Configuration files
 
-- `config.yml`: menu, storage, rewards, ranks, combat tagging, and kit item protection.
+- `config.yml`: menu, arena mode, spawn point, storage, rewards, ranks, combat tagging, and kit item protection.
 - `items.yml`: kits, items, and abilities. The top-level YAML key is the kit ID used by commands.
+- `arena.yml`: the arena spots players can teleport to.
 - `messages.yml`: every message the plugin sends. Missing keys are added automatically on load.
 
 ### config.yml
 
 ```yaml
 enablemenu: true
+arenaMode: selection
 materialnotowned: GRAY_DYE
 lorenotowned: '<gray>Click to buy for {price}!'
 lorebought: '<gray>Click to select this kit!'
@@ -141,6 +153,10 @@ ranks:
 combat:
   tag-seconds: 15
   block-kit-switch: true
+
+spawn:
+  coordinates: 0, 100, 0
+  pitch: 0, 0
 
 menu-item:
   enabled: true
@@ -253,6 +269,71 @@ When `menu-item.enabled` is true and the menu is enabled, every player without a
 - `slot` is a main inventory slot from 0 to 35. Slots 0 to 8 are the hotbar.
 - `material`, `name`, `lore`, and `glow` control how it looks.
 - If the slot already holds another item, that item is moved to a free slot or dropped.
+
+### Spawn
+
+`/spawn` (or `/magickpvp spawn`) teleports a player to the spawn point set in `config.yml`:
+
+```yaml
+spawn:
+  coordinates: 0, 100, 0
+  pitch: 0, 0
+```
+
+- `coordinates` is `x, y, z`. `pitch` is the head rotation the player faces after teleporting, written as `yaw, pitch`.
+- `/magickpvp setspawn` saves your position and rotation. `/magickpvp setspawn <x> <y> <z>` keeps your rotation, `/magickpvp setspawn <yaw> <pitch>` keeps your position, and `/magickpvp setspawn <x> <y> <z> <yaw> <pitch>` sets everything.
+- `setspawn` also saves a `world` key. Without it, players are teleported within the world they are in.
+- A player with a selected kit loses it on teleport: running abilities are released, the inventory is cleared, and the kit selector item is given back. Players without a kit are only teleported.
+- While combat tagged, `/spawn` is blocked if `combat.block-kit-switch` is true (`spawn-in-combat` message).
+- If `spawn.coordinates` is missing or invalid, the spawn point is disabled and players get the `spawn-not-set` message.
+
+### Arena
+
+Arena spots are teleport destinations defined in `arena.yml`. `arenaMode` in `config.yml` decides how `/magickpvp arena` picks one:
+
+- `selection`: opens a menu styled like the kit menu (it uses `menu.size` and `menu.decoration`). Clicking a spot teleports the player there.
+- `randomized`: teleports the player to a random spot.
+
+Arena teleports do not change the player's kit.
+
+```yaml
+arena:
+  spot1:
+    world: world
+    coordinates: 0, 64, 0
+    pitch: 0, 0
+    material: DIAMOND
+    slot: 5
+    name: "<red>Center of arena!"
+    glow: true
+```
+
+| Field | Description |
+| --- | --- |
+| `world` | World of the spot. Without it, the player's current world is used |
+| `coordinates` | `x, y, z`. Required |
+| `pitch` | `yaw, pitch`, the head rotation after teleporting |
+| `material` | Menu icon, `ENDER_PEARL` by default |
+| `slot` | Menu slot. Spots without a valid or free slot are placed automatically, and extra pages are added as needed |
+| `name` | MiniMessage display name, the spot ID by default |
+| `glow` | Enchantment glint on the icon |
+
+`material`, `slot`, `name`, and `glow` only matter in `selection` mode.
+
+#### Managing spots
+
+```
+/magickpvp arena <set|add|remove> <name> [x y z] [yaw pitch] [material] [slot] [glow] [displayname]
+```
+
+- `add` creates a spot and fails if the name exists. `set` updates an existing spot. `remove` deletes one and only needs the name.
+- Coordinates and rotation default to where you stand and look. The remaining arguments are positional, so you can stop at any point but cannot skip one. `displayname` is everything after `glow` and may contain spaces.
+- With `set`, `material`, `slot`, `glow`, and `displayname` keep their value unless you give a new one.
+- Spot names cannot contain dots.
+- These commands rewrite `arena.yml`, so comments in the file are not kept.
+- Spots whose world is not loaded are skipped.
+
+Example: `/magickpvp arena add center 0 64 0 0 0 DIAMOND 5 true <red>Center of arena!`
 
 ### Stats and leaderboards
 
@@ -505,6 +586,10 @@ Messages support MiniMessage formatting such as `<red>`, `<gold>`, and `<gray>`.
 | `{amount}` | `requirement-xp`, `requirement-kills` |
 | `{xp}`, `{kills}`, `{deaths}`, `{kdr}`, `{streak}`, `{best}` | `stats-line` |
 | `{stat}`, `{rank}`, `{player}`, `{value}` | `top-header`, `top-entry` |
+| `{time}` | `spawn-in-combat` |
+| `{location}` | `spawn-set` |
+| `{spot}` | `arena-teleported`, `arena-world-missing`, `arena-added`, `arena-updated`, `arena-removed`, `arena-exists`, `arena-unknown` |
+| `{page}`, `{pages}` | `arena-title` |
 
 ## Troubleshooting
 
@@ -517,3 +602,5 @@ Messages support MiniMessage formatting such as `<red>`, `<gold>`, and `<gray>`.
 - **A kit cannot be sold:** kits granted by permission cannot be sold, only purchased kits can.
 - **Kit switching is blocked:** the player is combat tagged. Adjust `combat.tag-seconds` or `combat.block-kit-switch`.
 - **The plugin disables itself on start:** the database could not be opened. Check the `storage` section of `config.yml` and the console error.
+- **`/spawn` says the spawn point is not set:** `spawn.coordinates` is missing or not in `x, y, z` form, or `spawn.world` is not loaded. Run `/magickpvp setspawn`.
+- **The arena does nothing:** `arena.yml` has no valid spots or their worlds are not loaded. Check the console for warnings.
