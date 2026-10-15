@@ -17,6 +17,8 @@ class PluginManager : JavaPlugin() {
         private set
     lateinit var kits: KitManager
         private set
+    lateinit var kitUsage: KitUsage
+        private set
     lateinit var experience: ExperienceManager
         private set
     lateinit var stats: StatsManager
@@ -32,6 +34,8 @@ class PluginManager : JavaPlugin() {
     lateinit var rewards: RewardManager
         private set
     lateinit var protection: ItemProtection
+        private set
+    lateinit var nonKitItems: NonKitItemPrevention
         private set
     lateinit var spawn: SpawnManager
         private set
@@ -59,6 +63,7 @@ class PluginManager : JavaPlugin() {
         itemLoader = ItemLoader(this)
         economy = EconomyManager(this)
         data = DataManager(this)
+        kitUsage = KitUsage(this)
         kits = KitManager(this)
         experience = ExperienceManager(this)
         stats = StatsManager(this)
@@ -68,6 +73,7 @@ class PluginManager : JavaPlugin() {
         menuItem = MenuItemManager(this)
         rewards = RewardManager(this)
         protection = ItemProtection(this)
+        nonKitItems = NonKitItemPrevention(this)
         spawn = SpawnManager(this)
         arena = ArenaManager(this)
         arenaMenu = ArenaMenu(this)
@@ -84,6 +90,12 @@ class PluginManager : JavaPlugin() {
             logger.severe("Disabling MagicKPvP because the database could not be opened, check the storage section of config.yml.")
             server.pluginManager.disablePlugin(this)
             return
+        }
+
+        try {
+            kitUsage.load()
+        } catch (failure: Exception) {
+            logger.log(Level.WARNING, "Could not load kit usage: ${failure.message}", failure)
         }
 
         for (player in server.onlinePlayers) {
@@ -106,6 +118,7 @@ class PluginManager : JavaPlugin() {
         server.pluginManager.registerEvents(rewards, this)
         server.pluginManager.registerEvents(combat, this)
         server.pluginManager.registerEvents(protection, this)
+        server.pluginManager.registerEvents(nonKitItems, this)
         server.pluginManager.registerEvents(arenaMenu, this)
         abilities.start()
 

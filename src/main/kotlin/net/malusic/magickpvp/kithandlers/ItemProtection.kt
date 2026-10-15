@@ -1,13 +1,18 @@
 package net.malusic.magickpvp
 
+import org.bukkit.entity.ArmorStand
+import org.bukkit.entity.ItemFrame
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.event.inventory.ClickType
+import org.bukkit.event.inventory.InventoryAction
 import org.bukkit.event.inventory.InventoryClickEvent
+import org.bukkit.event.inventory.InventoryCreativeEvent
 import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.event.inventory.InventoryType
 import org.bukkit.event.player.PlayerDropItemEvent
+import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.ItemStack
 
@@ -32,15 +37,19 @@ class ItemProtection(private val plugin: PluginManager) : Listener {
         if (!active(player)) return
 
         val top = event.view.topInventory
-        if (!isExternal(top)) return
-
         val clickedTop = event.clickedInventory == top
         val blocked = when {
+            event.action == InventoryAction.DROP_ALL_CURSOR || event.action == InventoryAction.DROP_ONE_CURSOR ->
+                isKitItem(event.cursor)
+            event.action == InventoryAction.DROP_ALL_SLOT || event.action == InventoryAction.DROP_ONE_SLOT ->
+                isKitItem(event.currentItem)
+            event.click == ClickType.DROP || event.click == ClickType.CONTROL_DROP -> isKitItem(event.currentItem)
+            event.slotType == InventoryType.SlotType.OUTSIDE -> isKitItem(event.cursor)
             clickedTop && isKitItem(event.cursor) -> true
             clickedTop && event.click == ClickType.NUMBER_KEY ->
                 event.hotbarButton >= 0 && isKitItem(player.inventory.getItem(event.hotbarButton))
             clickedTop && event.click == ClickType.SWAP_OFFHAND -> isKitItem(player.inventory.itemInOffHand)
-            !clickedTop && event.isShiftClick -> isKitItem(event.currentItem)
+            !clickedTop && event.isShiftClick && isExternal(top) -> isKitItem(event.currentItem)
             else -> false
         }
         if (blocked) event.isCancelled = true
@@ -50,11 +59,23 @@ class ItemProtection(private val plugin: PluginManager) : Listener {
     fun onDrag(event: InventoryDragEvent) {
         val player = event.whoClicked as? Player ?: return
         if (!active(player)) return
-
-        val top = event.view.topInventory
-        if (!isExternal(top)) return
         if (!isKitItem(event.oldCursor)) return
 
+        val top = event.view.topInventory
         if (event.rawSlots.any { it < top.size }) event.isCancelled = true
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    fun onCreative(event: InventoryCreativeEvent) {
+        val player = event.whoClicked as? Player ?: return
+        if (!active(player)) return
+        if (event.slotType == InventoryType.SlotType.OUTSIDE && isKitItem(event.cursor)) event.isCancelled = true
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    fun onFrame(event: PlayerInteractEntityEvent) {
+        if (!active(event.player)) return
+        if (event.rightClicked !is ItemFrame && event.rightClicked !is ArmorStand) return
+        if (isKitItem(event.player.inventory.getItem(event.hand))) event.isCancelled = true
     }
 }

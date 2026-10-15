@@ -62,6 +62,15 @@ class SqlPlayerStorage private constructor(
                 "ON DUPLICATE KEY UPDATE best_streak = VALUES(best_streak)"
     }
 
+    private val addKitPurchaseSql = when (type) {
+        StorageType.SQLITE ->
+            "INSERT INTO $USAGE (kit_id, purchases) VALUES (?, 1) " +
+                "ON CONFLICT(kit_id) DO UPDATE SET purchases = purchases + 1"
+        StorageType.MYSQL ->
+            "INSERT INTO $USAGE (kit_id, purchases) VALUES (?, 1) " +
+                "ON DUPLICATE KEY UPDATE purchases = purchases + 1"
+    }
+
     private fun <T> prepared(sql: String, action: (PreparedStatement) -> T): T =
         source.connection.use { connection -> connection.prepareStatement(sql).use(action) }
 
@@ -145,6 +154,17 @@ class SqlPlayerStorage private constructor(
         }
     }
 
+    fun addKitPurchase(kitId: String) = update(addKitPurchaseSql, kitId)
+
+    fun kitUsage(): Map<String, Long> =
+        prepared("SELECT kit_id, purchases FROM $USAGE") { statement ->
+            statement.executeQuery().use { rows ->
+                val found = HashMap<String, Long>()
+                while (rows.next()) found[rows.getString(1)] = rows.getLong(2)
+                found
+            }
+        }
+
     fun addXp(uuid: UUID, amount: Long) = update(addXpSql, uuid.toString(), amount)
 
     fun setXp(uuid: UUID, amount: Long) = update(setXpSql, uuid.toString(), amount)
@@ -163,6 +183,7 @@ class SqlPlayerStorage private constructor(
         private const val KITS = "magickpvp_kits"
         private const val PLAYERS = "magickpvp_players"
         private const val STATS = "magickpvp_stats"
+        private const val USAGE = "magickpvp_kit_usage"
 
         private const val CREATE_KITS = """
             CREATE TABLE IF NOT EXISTS $KITS (
@@ -185,6 +206,13 @@ class SqlPlayerStorage private constructor(
                 kills BIGINT NOT NULL DEFAULT 0,
                 deaths BIGINT NOT NULL DEFAULT 0,
                 best_streak BIGINT NOT NULL DEFAULT 0
+            )
+        """
+
+        private const val CREATE_USAGE = """
+            CREATE TABLE IF NOT EXISTS $USAGE (
+                kit_id VARCHAR(128) NOT NULL PRIMARY KEY,
+                purchases BIGINT NOT NULL DEFAULT 0
             )
         """
 
@@ -220,6 +248,7 @@ class SqlPlayerStorage private constructor(
                         it.execute(CREATE_KITS)
                         it.execute(CREATE_PLAYERS)
                         it.execute(CREATE_STATS)
+                        it.execute(CREATE_USAGE)
                     }
                 }
             } catch (failure: Exception) {

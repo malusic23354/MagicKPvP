@@ -12,6 +12,8 @@ import java.util.UUID
 
 interface AbilityZoneCheck {
     fun abilitiesAllowed(player: Player): Boolean
+
+    fun kitSwitchAllowed(player: Player): Boolean
 }
 
 fun EntityDamageByEntityEvent.attacker(): Player? = when (val source = damager) {
@@ -38,6 +40,8 @@ class CombatManager(private val plugin: PluginManager) : Listener {
         plugin.configuration.combat.blockKitSwitch && isTagged(player)
 
     fun abilitiesAllowed(player: Player): Boolean = zoneCheck?.abilitiesAllowed(player) ?: true
+
+    fun kitSwitchAllowed(player: Player): Boolean = zoneCheck?.kitSwitchAllowed(player) ?: true
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     fun onDamage(event: EntityDamageByEntityEvent) {

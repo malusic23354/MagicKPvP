@@ -64,7 +64,9 @@ class RewardManager(private val plugin: PluginManager) : Listener {
         damage.values.forEach { it.remove(uuid) }
     }
 
-    private fun pay(player: Player, victim: Player, coins: Double, xp: Long, messageKey: String) {
+    private fun pay(player: Player, victim: Player, coinRange: ValueRange, xpRange: ValueRange, messageKey: String) {
+        val coins = coinRange.rollCoins()
+        val xp = xpRange.rollLong()
         if (coins <= 0.0 && xp <= 0L) return
 
         if (coins > 0.0 && plugin.economy.available) plugin.economy.deposit(player, coins)

@@ -42,6 +42,7 @@ class PlaceholderHook(private val plugin: PluginManager) : PlaceholderExpansion(
             "kit" -> online?.let { plugin.kits.activeKitId(it) } ?: "none"
             "kit_name" -> online?.let { plugin.kits.activeKitId(it) }
                 ?.let { id -> plugin.itemLoader.get(id)?.let { plugin.messages.plain(it.name) } } ?: "None"
+            "cooldown" -> ((plugin.abilities.lastCooldownLeft(uuid) + 999L) / 1000L).toString()
             "cooldown_reduction" -> (online?.let { plugin.abilities.cooldownReduction(it) } ?: 0).toString()
             else -> null
         }

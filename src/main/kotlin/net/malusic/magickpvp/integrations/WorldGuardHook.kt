@@ -9,31 +9,43 @@ import org.bukkit.entity.Player
 
 class WorldGuardHook : AbilityZoneCheck {
 
-    override fun abilitiesAllowed(player: Player): Boolean {
-        val abilitiesFlag = flag ?: return true
+    override fun abilitiesAllowed(player: Player): Boolean = allowed(player, abilitiesFlag)
+
+    override fun kitSwitchAllowed(player: Player): Boolean = allowed(player, kitSwitchFlag)
+
+    private fun allowed(player: Player, target: StateFlag?): Boolean {
+        val zoneFlag = target ?: return true
         val query = WorldGuard.getInstance().platform.regionContainer.createQuery()
         val location = BukkitAdapter.adapt(player.location)
         val localPlayer = WorldGuardPlugin.inst().wrapPlayer(player)
-        return query.testState(location, localPlayer, abilitiesFlag)
+        return query.testState(location, localPlayer, zoneFlag)
     }
 
     companion object {
         const val FLAG_NAME = "magickpvp-abilities"
+        const val KIT_SWITCH_FLAG_NAME = "magickpvp-kit-switch"
 
-        private var flag: StateFlag? = null
+        private var abilitiesFlag: StateFlag? = null
+        private var kitSwitchFlag: StateFlag? = null
 
         fun register(plugin: PluginManager) {
+            abilitiesFlag = create(plugin, FLAG_NAME)
+            kitSwitchFlag = create(plugin, KIT_SWITCH_FLAG_NAME)
+        }
+
+        private fun create(plugin: PluginManager, name: String): StateFlag? {
             val registry = WorldGuard.getInstance().flagRegistry
-            try {
-                val created = StateFlag(FLAG_NAME, true)
+            return try {
+                val created = StateFlag(name, true)
                 registry.register(created)
-                flag = created
+                created
             } catch (conflict: FlagConflictException) {
-                val existing = registry.get(FLAG_NAME)
+                val existing = registry.get(name)
                 if (existing is StateFlag) {
-                    flag = existing
+                    existing
                 } else {
-                    plugin.logger.warning("Another plugin already registered a WorldGuard flag named '$FLAG_NAME', zone rules are disabled.")
+                    plugin.logger.warning("Another plugin already registered a WorldGuard flag named '$name', zone rules are disabled.")
+                    null
                 }
             }
         }

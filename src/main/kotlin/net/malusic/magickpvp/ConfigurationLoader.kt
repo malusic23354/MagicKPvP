@@ -27,13 +27,13 @@ data class StorageSettings(
 )
 
 data class RewardSettings(
-    val killCoins: Double = 100.0,
-    val killXp: Long = 10L,
+    val killCoins: ValueRange = ValueRange.fixed(100.0),
+    val killXp: ValueRange = ValueRange.fixed(10.0),
     val shareEnabled: Boolean = true,
     val shareThreshold: Double = 0.5,
     val shareWindowSeconds: Int = 60,
-    val shareCoins: Double = 50.0,
-    val shareXp: Long = 5L
+    val shareCoins: ValueRange = ValueRange.fixed(50.0),
+    val shareXp: ValueRange = ValueRange.fixed(5.0)
 )
 
 data class RankGroup(val group: String, val xp: Long)
@@ -61,6 +61,18 @@ data class MenuItemSettings(
 data class StatsSettings(
     val leaderboardSize: Int = 10,
     val refreshSeconds: Int = 60
+)
+
+data class NonKitItemSettings(
+    val enabled: Boolean = false,
+    val removeOnClick: Boolean = true,
+    val blockPickup: Boolean = true,
+    val allowed: Set<Material> = emptySet()
+)
+
+data class KitUsageSettings(
+    val enabled: Boolean = true,
+    val pageSize: Int = 10
 )
 
 data class StreakReward(
@@ -142,10 +154,14 @@ class ConfigurationLoader(private val plugin: PluginManager) {
         private set
     var streaks: StreakSettings = StreakSettings()
         private set
+    var kitUsage: KitUsageSettings = KitUsageSettings()
+        private set
+    var nonKitItems: NonKitItemSettings = NonKitItemSettings()
+        private set
 
     fun load() {
+        MissingKeyWriter.sync(plugin, "config.yml")
         val file = File(plugin.dataFolder, "config.yml")
-        if (!file.exists()) plugin.saveResource("config.yml", false)
         val cfg = YamlConfiguration.loadConfiguration(file)
 
         enableMenu = cfg.getBoolean("enablemenu", true)
@@ -216,15 +232,15 @@ class ConfigurationLoader(private val plugin: PluginManager) {
 
         val rewardDefaults = RewardSettings()
         rewards = RewardSettings(
-            killCoins = cfg.getDouble("rewards.kill.coins", rewardDefaults.killCoins).coerceAtLeast(0.0),
-            killXp = cfg.getLong("rewards.kill.xp", rewardDefaults.killXp).coerceAtLeast(0L),
+            killCoins = ValueRange.parse(cfg.get("rewards.kill.coins"), rewardDefaults.killCoins),
+            killXp = ValueRange.parse(cfg.get("rewards.kill.xp"), rewardDefaults.killXp),
             shareEnabled = cfg.getBoolean("rewards.damage-share.enabled", rewardDefaults.shareEnabled),
             shareThreshold = cfg.getDouble("rewards.damage-share.threshold", rewardDefaults.shareThreshold)
                 .coerceIn(0.0, 1.0),
             shareWindowSeconds = cfg.getInt("rewards.damage-share.window-seconds", rewardDefaults.shareWindowSeconds)
                 .coerceAtLeast(1),
-            shareCoins = cfg.getDouble("rewards.damage-share.coins", rewardDefaults.shareCoins).coerceAtLeast(0.0),
-            shareXp = cfg.getLong("rewards.damage-share.xp", rewardDefaults.shareXp).coerceAtLeast(0L)
+            shareCoins = ValueRange.parse(cfg.get("rewards.damage-share.coins"), rewardDefaults.shareCoins),
+            shareXp = ValueRange.parse(cfg.get("rewards.damage-share.xp"), rewardDefaults.shareXp)
         )
 
         val rankGroups = cfg.getConfigurationSection("ranks.groups")?.let { section ->
@@ -309,6 +325,22 @@ class ConfigurationLoader(private val plugin: PluginManager) {
         streaks = StreakSettings(
             enabled = cfg.getBoolean("streak-rewards.enabled", false),
             rewards = streakRewards
+        )
+
+        val nonKitDefaults = NonKitItemSettings()
+        nonKitItems = NonKitItemSettings(
+            enabled = cfg.getBoolean("non-kit-item-prevention.enabled", nonKitDefaults.enabled),
+            removeOnClick = cfg.getBoolean("non-kit-item-prevention.remove-on-click", nonKitDefaults.removeOnClick),
+            blockPickup = cfg.getBoolean("non-kit-item-prevention.block-pickup", nonKitDefaults.blockPickup),
+            allowed = cfg.getStringList("non-kit-item-prevention.allowed-materials")
+                .mapNotNull { Material.matchMaterial(it) }
+                .toSet()
+        )
+
+        val usageDefaults = KitUsageSettings()
+        kitUsage = KitUsageSettings(
+            enabled = cfg.getBoolean("kit-usage.enabled", usageDefaults.enabled),
+            pageSize = cfg.getInt("kit-usage.page-size", usageDefaults.pageSize).coerceIn(1, 50)
         )
     }
 

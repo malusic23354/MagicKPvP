@@ -32,6 +32,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
     private val projectileKey = NamespacedKey(plugin, "projectile_item")
     private val cooldowns = ConcurrentHashMap<UUID, ConcurrentHashMap<String, Long>>()
     private val cooling = HashMap<UUID, HashSet<String>>()
+    private val lastUsed = ConcurrentHashMap<UUID, String>()
     private val notices = HashMap<Pair<UUID, String>, Long>()
     private var task: BukkitTask? = null
 
@@ -67,6 +68,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
     fun reset() {
         cooldowns.clear()
+        lastUsed.clear()
         cooling.clear()
         notices.clear()
         registry.all().forEach { it.reset() }
@@ -80,6 +82,11 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         val expiresAt = cooldowns[uuid]?.get(itemId) ?: return 0L
         val left = expiresAt - System.currentTimeMillis()
         return if (left > 0L) left else 0L
+    }
+
+    fun lastCooldownLeft(uuid: UUID): Long {
+        val itemId = lastUsed[uuid] ?: return 0L
+        return cooldownLeft(uuid, itemId)
     }
 
     fun cooldownReduction(player: Player): Int {
@@ -112,6 +119,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
     }
 
     private fun startCooldown(player: Player, itemId: String, custom: CustomItem) {
+        lastUsed[player.uniqueId] = itemId
         if (custom.cooldownTicks <= 0L) return
         val ticks = (custom.cooldownTicks * (100 - cooldownReduction(player)) / 100L).coerceAtLeast(1L)
         cooldowns.getOrPut(player.uniqueId) { ConcurrentHashMap() }[itemId] =
@@ -330,6 +338,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         val uuid = event.player.uniqueId
         cooldowns.remove(uuid)
         cooling.remove(uuid)
+        lastUsed.remove(uuid)
         notices.keys.removeIf { it.first == uuid }
         releaseAll(uuid)
     }
@@ -341,6 +350,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         if (plugin.configuration.cooldownResetOnDeath) {
             cooldowns.remove(uuid)
             cooling.remove(uuid)
+            lastUsed.remove(uuid)
             notices.keys.removeIf { it.first == uuid }
         }
     }

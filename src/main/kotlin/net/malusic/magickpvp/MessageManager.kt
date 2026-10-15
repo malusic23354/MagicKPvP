@@ -6,7 +6,6 @@ import net.kyori.adventure.text.minimessage.MiniMessage
 import org.bukkit.command.CommandSender
 import org.bukkit.configuration.file.YamlConfiguration
 import java.io.File
-import java.io.InputStreamReader
 
 class MessageManager(private val plugin: PluginManager) {
 
@@ -14,31 +13,14 @@ class MessageManager(private val plugin: PluginManager) {
     private var messages = YamlConfiguration()
 
     fun load() {
+        MissingKeyWriter.sync(plugin, "messages.yml")
         val file = File(plugin.dataFolder, "messages.yml")
-        if (!file.exists()) plugin.saveResource("messages.yml", false)
 
         val loaded = YamlConfiguration.loadConfiguration(file)
-        val defaults = plugin.getResource("messages.yml")?.use { stream ->
-            YamlConfiguration.loadConfiguration(InputStreamReader(stream, Charsets.UTF_8))
-        }
-
-        var changed = false
         if (loaded.contains("info")) {
             loaded.set("info", null)
-            changed = true
+            loaded.save(file)
         }
-
-        if (defaults != null) {
-            for (key in defaults.getKeys(true)) {
-                if (defaults.isConfigurationSection(key)) continue
-                if (!loaded.contains(key)) {
-                    loaded.set(key, defaults.get(key))
-                    changed = true
-                }
-            }
-        }
-
-        if (changed) loaded.save(file)
         messages = loaded
     }
 

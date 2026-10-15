@@ -64,6 +64,7 @@ The main command is `/magickpvp`, with `/mkp` as an alias. `/spawn` is a shortcu
 | `/magickpvp xp <add\|remove\|set> <player> <amount>` | Change an online player's XP | `magickpvp.xp.admin` |
 | `/magickpvp stats [player]` | Show your stats or an online player's stats | `magickpvp.stats` |
 | `/magickpvp top [xp\|kills\|deaths\|streak]` | Show a leaderboard | `magickpvp.top` |
+| `/magickpvp kitusage [page]` | Show how many times each kit was purchased, most bought first | `magickpvp.kitusage` |
 | `/magickpvp spawn` or `/spawn` | Teleport to spawn and reset your kit | `magickpvp.spawn` |
 | `/magickpvp setspawn [x y z] [yaw pitch]` | Set the spawn point | `magickpvp.setspawn` |
 | `/magickpvp arena` | Open the arena menu or teleport to a random spot, depending on `arenaMode` | `magickpvp.arena` |
@@ -84,6 +85,7 @@ The main command is `/magickpvp`, with `/mkp` as an alias. `/spawn` is a shortcu
 | `magickpvp.xp.admin` | Operators | Add, remove, or set player XP |
 | `magickpvp.stats` | Everyone | View player stats |
 | `magickpvp.top` | Everyone | View the leaderboards |
+| `magickpvp.kitusage` | Operators | View kit purchase statistics |
 | `magickpvp.spawn` | Everyone | Teleport to spawn |
 | `magickpvp.setspawn` | Operators | Set the spawn point |
 | `magickpvp.arena` | Everyone | Use the arena teleporter |
@@ -157,6 +159,8 @@ combat:
 spawn:
   coordinates: 0, 100, 0
   pitch: 0, 0
+  delay-seconds: 3
+  cancel-on-move: true
 
 menu-item:
   enabled: true
@@ -247,6 +251,7 @@ Ranks, the selected kit, cooldowns, and combat tags are not stored. An old `data
 
 - A killer receives `rewards.kill.coins` and `rewards.kill.xp`.
 - With `damage-share` enabled, other players who dealt more than `threshold` of the damage within `window-seconds` also receive the share rewards.
+- Every `coins` and `xp` value can be a fixed number or a range such as `1-5`, rolled on each reward. Coin ranges with decimals give two decimal places.
 - Coins need a Vault economy. XP works without one.
 
 ### Ranks
@@ -278,8 +283,11 @@ When `menu-item.enabled` is true and the menu is enabled, every player without a
 spawn:
   coordinates: 0, 100, 0
   pitch: 0, 0
+  delay-seconds: 3
+  cancel-on-move: true
 ```
 
+- `delay-seconds` is how long a player must wait before the teleport happens (0 teleports instantly). With `cancel-on-move: true`, moving or entering combat during the countdown cancels it.
 - `coordinates` is `x, y, z`. `pitch` is the head rotation the player faces after teleporting, written as `yaw, pitch`.
 - `/magickpvp setspawn` saves your position and rotation. `/magickpvp setspawn <x> <y> <z>` keeps your rotation, `/magickpvp setspawn <yaw> <pitch>` keeps your position, and `/magickpvp setspawn <x> <y> <z> <yaw> <pitch>` sets everything.
 - `setspawn` also saves a `world` key. Without it, players are teleported within the world they are in.
@@ -342,6 +350,20 @@ The plugin stores kills, deaths and best kill streak per player in the `magickpv
 - `/magickpvp stats [player]` shows XP, kills, deaths, K/D and streaks.
 - `/magickpvp top [xp|kills|deaths|streak]` shows a leaderboard.
 - Leaderboards are cached and refreshed in the background every `stats.leaderboard-refresh-seconds`, so they can be up to that many seconds behind. `stats.leaderboard-size` sets how many players are kept (1 to 50).
+
+### Kit usage
+
+Every kit purchase is counted per kit in the `magickpvp_kit_usage` table. `/magickpvp kitusage [page]` lists all kits in `items.yml` from most to least bought, with the share of total purchases, so you can see which kits to improve, balance or remove. Kits with no purchases are listed too. Permission-granted kits are not counted.
+
+```yaml
+kit-usage:
+  enabled: true
+  page-size: 10
+```
+
+### Missing options
+
+On start and on `/magickpvp reload`, any top-level option missing from `config.yml` or `messages.yml` is appended to the file. Sections get only their header, without sub-lines, and the built-in defaults apply until you fill them in. Existing content and comments are never changed.
 
 ### Cooldown display
 
@@ -417,6 +439,7 @@ When PlaceholderAPI is installed, the plugin registers these placeholders:
 | `%magickpvp_streak%`, `%magickpvp_best_streak%` | Current and best kill streak |
 | `%magickpvp_kit%`, `%magickpvp_kit_name%` | Selected kit ID and name, `none` if no kit |
 | `%magickpvp_cooldown_<kit>:<item>%` | Seconds left on an item, `0` when ready, for example `%magickpvp_cooldown_pyromancer:staff%` |
+| `%magickpvp_cooldown%` | Seconds left on the cooldown of the ability the player used last, `0` when ready |
 | `%magickpvp_cooldown_reduction%` | The player's cooldown reduction percent |
 | `%magickpvp_top_<stat>_<position>_name%` | Leaderboard name, `stat` is `xp`, `kills`, `deaths` or `streak` |
 | `%magickpvp_top_<stat>_<position>_value%` | Leaderboard value |
@@ -425,7 +448,19 @@ Leaderboard placeholders read the cached leaderboard, so they are safe to use in
 
 ### Kit item protection
 
-With `protect-kit-items: true`, players cannot drop kit items or move them into chests and other external inventories. Players with `magickpvp.bypass` are exempt.
+With `protect-kit-items: true`, players cannot drop kit items (including from the cursor, with Q, or by clicking outside the inventory), move them into chests, the crafting grid or other external inventories, or place them in item frames and armor stands. Players with `magickpvp.bypass` are exempt, and that permission is granted to operators by default, so test as a normal player.
+
+### Non-kit item prevention
+
+```yaml
+non-kit-item-prevention:
+  enabled: false
+  remove-on-click: true
+  block-pickup: true
+  allowed-materials: []
+```
+
+When enabled, players with a selected kit cannot hold items whose material is not used by any item in that kit. `remove-on-click` deletes such an item from the inventory when the player clicks it, and `block-pickup` stops them picking it up. Kit items, the kit selector item and materials in `allowed-materials` are never touched. Players with `magickpvp.bypass` are exempt.
 
 ### WorldGuard
 
@@ -433,6 +468,12 @@ When WorldGuard is installed, the plugin registers a state flag named `magickpvp
 
 ```
 /rg flag spawn magickpvp-abilities deny
+```
+
+The `magickpvp-kit-switch` flag also defaults to allow. Set it to `deny` on a region, such as the arena, to stop players who already have a kit from changing it there.
+
+```
+/rg flag arena magickpvp-kit-switch deny
 ```
 
 ## Kits and items
@@ -539,7 +580,7 @@ Aliases: `radius_effect`, `randomizedtarget`, `black_hole`, `chainlightning`.
 
 **totem**: `material`, `small`, `name` (`{owner}`), `lifetime`, `health`, `radius`, `interval`, `affects` (`owner`, `others`, or `all`), `effects` (`name:level:duration`), `effect-duration`, `heal`, `damage`.
 
-**decoy**: `lifetime`, `health`, `show-name`, `name` (`{owner}`), `glow`, `effects` (applied to the player who destroys it), `self-effects` (default is short invisibility), `effect-duration`.
+**decoy**: the decoy is a player-model NPC with your skin and gear that wanders randomly. `wander` (default true), `speed` (blocks per tick, default 0.2), `wander-radius` (default 8), `direction-change` (default 1.5s), `lifetime`, `health`, `show-name`, `name` (`{owner}`), `glow`, `effects` (applied to the player who destroys it), `self-effects` (default is short invisibility), `effect-duration`.
 
 **blackhole**: `range`, `radius`, `strength`, `burst`, `damage`, `affect-owner`, `affect-mobs`, `duration`, `effects`, `effect-duration`.
 

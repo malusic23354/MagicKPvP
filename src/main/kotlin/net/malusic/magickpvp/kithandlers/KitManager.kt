@@ -19,7 +19,8 @@ enum class KitResult {
     INSUFFICIENT_FUNDS,
     NO_ECONOMY,
     IN_COMBAT,
-    REQUIREMENT_NOT_MET
+    REQUIREMENT_NOT_MET,
+    REGION_BLOCKED
 }
 
 class KitManager(private val plugin: PluginManager) : Listener {
@@ -80,6 +81,11 @@ class KitManager(private val plugin: PluginManager) : Listener {
         if (plugin.combat.blocksKitSwitch(player)) {
             plugin.messages.send(player, "in-combat", "time" to plugin.combat.remainingSeconds(player).toString())
             return KitResult.IN_COMBAT
+        }
+
+        if (hasActiveKit(player) && !plugin.combat.kitSwitchAllowed(player)) {
+            plugin.messages.send(player, "kit-switch-disabled")
+            return KitResult.REGION_BLOCKED
         }
 
         plugin.abilities.releaseAll(player.uniqueId)
@@ -151,6 +157,7 @@ class KitManager(private val plugin: PluginManager) : Listener {
         val buyer = player.uniqueId
         purchased.getOrPut(buyer) { newSet(emptyList()) }.add(kit.id)
         plugin.data.write { it.addKit(buyer, kit.id) }
+        plugin.kitUsage.record(kit.id)
 
         plugin.messages.send(
             player, "purchased",

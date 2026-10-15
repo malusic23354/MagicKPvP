@@ -17,10 +17,15 @@ class SpawnManager(private val plugin: PluginManager) {
     private var z = 0.0
     private var yaw = 0f
     private var pitch = 0f
+    private var delaySeconds = 3
+    private var cancelOnMove = true
+    private val countdown = SpawnCountdown(plugin)
 
     fun load() {
         val cfg = YamlConfiguration.loadConfiguration(File(plugin.dataFolder, "config.yml"))
         defined = false
+        delaySeconds = cfg.getInt("spawn.delay-seconds", 3).coerceIn(0, 60)
+        cancelOnMove = cfg.getBoolean("spawn.cancel-on-move", true)
 
         val coordinates = numbers(cfg.getString("spawn.coordinates"), 3)
         if (coordinates == null) {
@@ -74,6 +79,17 @@ class SpawnManager(private val plugin: PluginManager) {
             return false
         }
 
+        if (delaySeconds <= 0) return perform(player)
+        if (countdown.isPending(player)) {
+            plugin.messages.send(player, "spawn-pending")
+            return false
+        }
+        countdown.start(player, delaySeconds, cancelOnMove) { perform(player) }
+        return true
+    }
+
+    private fun perform(player: Player): Boolean {
+        val target = location(player) ?: return false
         player.fallDistance = 0f
         if (!player.teleport(target)) return false
 

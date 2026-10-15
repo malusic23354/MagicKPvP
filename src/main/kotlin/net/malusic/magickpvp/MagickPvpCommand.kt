@@ -8,7 +8,7 @@ import org.bukkit.entity.Player
 
 class MagickPvpCommand(private val plugin: PluginManager) : CommandExecutor, TabCompleter {
 
-    private val subCommands = listOf("menu", "select", "buy", "sell", "info", "xp", "stats", "top", "spawn", "setspawn", "arena", "reload")
+    private val subCommands = listOf("menu", "select", "buy", "sell", "info", "xp", "stats", "top", "kitusage", "spawn", "setspawn", "arena", "reload")
     private val xpActions = listOf("add", "remove", "set")
     private val arena = ArenaCommand(plugin)
 
@@ -52,6 +52,7 @@ class MagickPvpCommand(private val plugin: PluginManager) : CommandExecutor, Tab
             "xp" -> handleXp(sender, args)
             "stats" -> handleStats(sender, args)
             "top" -> handleTop(sender, args)
+            "kitusage" -> handleKitUsage(sender, args)
             "spawn" -> {
                 val player = sender as? Player ?: return playerOnly(sender)
                 plugin.spawn.teleport(player)
@@ -121,6 +122,38 @@ class MagickPvpCommand(private val plugin: PluginManager) : CommandExecutor, Tab
                 "rank" to (index + 1).toString(),
                 "player" to (plugin.server.getOfflinePlayer(entry.uuid).name ?: entry.uuid.toString()),
                 "value" to entry.value.toString()
+            )
+        }
+    }
+
+    private fun handleKitUsage(sender: CommandSender, args: Array<out String>) {
+        val messages = plugin.messages
+        if (!plugin.configuration.kitUsage.enabled) {
+            messages.send(sender, "kitusage-disabled")
+            return
+        }
+
+        val ranking = plugin.kitUsage.ranking()
+        if (ranking.isEmpty()) {
+            messages.send(sender, "kitusage-empty")
+            return
+        }
+
+        val size = plugin.configuration.kitUsage.pageSize
+        val pages = (ranking.size + size - 1) / size
+        val page = (args.getOrNull(1)?.toIntOrNull() ?: 1).coerceIn(1, pages)
+        val total = plugin.kitUsage.total()
+
+        messages.send(sender, "kitusage-header", "page" to page.toString(), "pages" to pages.toString())
+        val start = (page - 1) * size
+        ranking.drop(start).take(size).forEachIndexed { index, entry ->
+            val percent = if (total == 0L) 0.0 else entry.purchases * 100.0 / total
+            messages.send(
+                sender, "kitusage-entry",
+                "rank" to (start + index + 1).toString(),
+                "kit" to entry.name,
+                "count" to entry.purchases.toString(),
+                "percent" to String.format(java.util.Locale.US, "%.1f", percent)
             )
         }
     }
