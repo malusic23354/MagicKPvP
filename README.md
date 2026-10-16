@@ -689,3 +689,29 @@ Messages support MiniMessage formatting such as `<red>`, `<gold>`, and `<gray>`.
 - **The plugin disables itself on start:** the database could not be opened. Check the `storage` section of `config.yml` and the console error.
 - **`/spawn` says the spawn point is not set:** `spawn.coordinates` is missing or not in `x, y, z` form, or `spawn.world` is not loaded. Run `/magickpvp setspawn`.
 - **The arena does nothing:** `arena.yml` has no valid spots or their worlds are not loaded. Check the console for warnings.
+
+## Changelog
+
+### 1.1.7 (upcoming)
+
+Everything new compared to 1.1.6:
+
+**Features**
+- Combat log punishment: disconnecting or timing out while combat tagged kills the player (credited to their opponent) or removes coins, configurable via `combat-log-punishment` (`death`, `reduction`, `off`).
+- Kills fully restore the killer (health, hunger, saturation), clear their tag, and announce the kill in a server-wide `killed-by` broadcast.
+- `spawn.teleport-on-join` and `spawn.respawn-at-spawn` options.
+- `/magickpvp arena` can now only be used from spawn.
+- WorldGuard: new `magickpvp-spawn` flag replaces `magickpvp-abilities` (inverted meaning — one allow-flagged spawn region both disables abilities inside and gates the arena).
+- New `%magickpvp_combattag%` placeholder (seconds left of the combat tag).
+- New `rank-up-broadcast` message announcing rank ups server-wide.
+- Items can be marked `unbreakable: true` in `items.yml` to take no durability damage.
+- SQLite and MySQL JDBC drivers are now bundled via `plugin.yml` `libraries`, so both storage modes work out of the box.
+
+**Behavior changes**
+- Selecting a kit from the menu or `/magickpvp select` is no longer blocked while combat tagged; `combat.block-kit-switch` now only blocks `/spawn` and cancels pending spawn countdowns.
+- Joining always clears the player's inventory before the kit selector item is given.
+- `%magickpvp_xp_needed%` now returns the next rank's XP threshold instead of the remaining amount.
+- `%magickpvp_kit%` returns `None` (was `none`) with no kit selected.
+
+**Fixes**
+- The `swap` ability did not trigger when right-clicking a player (only the projectile path worked). Right-click targeting now handles every interact-event variant a client can send, without double-firing.
