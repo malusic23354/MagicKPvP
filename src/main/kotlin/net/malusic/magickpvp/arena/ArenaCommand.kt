@@ -26,6 +26,10 @@ class ArenaCommand(private val plugin: PluginManager) {
                 messages.send(sender, "player-only")
                 return
             }
+            if (!plugin.combat.arenaAllowed(player)) {
+                messages.send(player, "arena-spawn-only")
+                return
+            }
             plugin.arena.join(player)
             return
         }

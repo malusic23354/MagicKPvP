@@ -48,6 +48,7 @@ class ExperienceManager(private val plugin: PluginManager) : Listener {
         ranks.sync(uuid, value)
         if (after != null && value > old) {
             plugin.messages.send(player, "rank-up", "rank" to after.group)
+            plugin.server.broadcast(plugin.messages.component("rank-up-broadcast", "player" to player.name, "rank" to after.group))
         }
     }
 

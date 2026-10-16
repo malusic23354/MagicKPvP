@@ -37,6 +37,8 @@ class PluginManager : JavaPlugin() {
         private set
     lateinit var nonKitItems: NonKitItemPrevention
         private set
+    lateinit var combatLog: CombatLogPunishment
+        private set
     lateinit var spawn: SpawnManager
         private set
     lateinit var arena: ArenaManager
@@ -74,6 +76,7 @@ class PluginManager : JavaPlugin() {
         rewards = RewardManager(this)
         protection = ItemProtection(this)
         nonKitItems = NonKitItemPrevention(this)
+        combatLog = CombatLogPunishment(this)
         spawn = SpawnManager(this)
         arena = ArenaManager(this)
         arenaMenu = ArenaMenu(this)
@@ -109,6 +112,7 @@ class PluginManager : JavaPlugin() {
         stats.start()
 
         server.pluginManager.registerEvents(data, this)
+        server.pluginManager.registerEvents(spawn, this)
         server.pluginManager.registerEvents(abilities, this)
         server.pluginManager.registerEvents(kits, this)
         server.pluginManager.registerEvents(kitMenu, this)
@@ -119,6 +123,7 @@ class PluginManager : JavaPlugin() {
         server.pluginManager.registerEvents(combat, this)
         server.pluginManager.registerEvents(protection, this)
         server.pluginManager.registerEvents(nonKitItems, this)
+        server.pluginManager.registerEvents(combatLog, this)
         server.pluginManager.registerEvents(arenaMenu, this)
         abilities.start()
 

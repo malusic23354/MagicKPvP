@@ -9,12 +9,22 @@ import org.bukkit.entity.Player
 
 class WorldGuardHook : AbilityZoneCheck {
 
-    override fun abilitiesAllowed(player: Player): Boolean = allowed(player, abilitiesFlag)
+    override fun abilitiesAllowed(player: Player): Boolean {
+        val zoneFlag = spawnFlag ?: return true
+        return !test(player, zoneFlag)
+    }
 
-    override fun kitSwitchAllowed(player: Player): Boolean = allowed(player, kitSwitchFlag)
+    override fun arenaAllowed(player: Player): Boolean {
+        val zoneFlag = spawnFlag ?: return true
+        return test(player, zoneFlag)
+    }
 
-    private fun allowed(player: Player, target: StateFlag?): Boolean {
-        val zoneFlag = target ?: return true
+    override fun kitSwitchAllowed(player: Player): Boolean {
+        val zoneFlag = kitSwitchFlag ?: return true
+        return test(player, zoneFlag)
+    }
+
+    private fun test(player: Player, zoneFlag: StateFlag): Boolean {
         val query = WorldGuard.getInstance().platform.regionContainer.createQuery()
         val location = BukkitAdapter.adapt(player.location)
         val localPlayer = WorldGuardPlugin.inst().wrapPlayer(player)
@@ -22,21 +32,21 @@ class WorldGuardHook : AbilityZoneCheck {
     }
 
     companion object {
-        const val FLAG_NAME = "magickpvp-abilities"
+        const val SPAWN_FLAG_NAME = "magickpvp-spawn"
         const val KIT_SWITCH_FLAG_NAME = "magickpvp-kit-switch"
 
-        private var abilitiesFlag: StateFlag? = null
+        private var spawnFlag: StateFlag? = null
         private var kitSwitchFlag: StateFlag? = null
 
         fun register(plugin: PluginManager) {
-            abilitiesFlag = create(plugin, FLAG_NAME)
-            kitSwitchFlag = create(plugin, KIT_SWITCH_FLAG_NAME)
+            spawnFlag = create(plugin, SPAWN_FLAG_NAME, false)
+            kitSwitchFlag = create(plugin, KIT_SWITCH_FLAG_NAME, true)
         }
 
-        private fun create(plugin: PluginManager, name: String): StateFlag? {
+        private fun create(plugin: PluginManager, name: String, default: Boolean): StateFlag? {
             val registry = WorldGuard.getInstance().flagRegistry
             return try {
-                val created = StateFlag(name, true)
+                val created = StateFlag(name, default)
                 registry.register(created)
                 created
             } catch (conflict: FlagConflictException) {

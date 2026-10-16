@@ -33,17 +33,18 @@ class PlaceholderHook(private val plugin: PluginManager) : PlaceholderExpansion(
             "xp" -> xp.toString()
             "rank" -> ranks?.rankFor(xp)?.group.orEmpty()
             "next_rank" -> ranks?.nextRank(xp)?.group.orEmpty()
-            "xp_needed" -> ranks?.nextRank(xp)?.let { (it.xp - xp).toString() } ?: "0"
+            "xp_needed" -> ranks?.nextRank(xp)?.let { (it.xp).toString() } ?: "0"
             "kills" -> plugin.stats.kills(uuid).toString()
             "deaths" -> plugin.stats.deaths(uuid).toString()
             "streak" -> plugin.stats.streak(uuid).toString()
             "best_streak" -> plugin.stats.bestStreak(uuid).toString()
             "kdr" -> String.format(Locale.US, "%.2f", plugin.stats.kdr(uuid))
-            "kit" -> online?.let { plugin.kits.activeKitId(it) } ?: "none"
+            "kit" -> online?.let { plugin.kits.activeKitId(it) } ?: "None"
             "kit_name" -> online?.let { plugin.kits.activeKitId(it) }
                 ?.let { id -> plugin.itemLoader.get(id)?.let { plugin.messages.plain(it.name) } } ?: "None"
             "cooldown" -> ((plugin.abilities.lastCooldownLeft(uuid) + 999L) / 1000L).toString()
             "cooldown_reduction" -> (online?.let { plugin.abilities.cooldownReduction(it) } ?: 0).toString()
+            "combattag" -> (online?.let { plugin.combat.remainingSeconds(it) } ?: 0).toString()
             else -> null
         }
     }
