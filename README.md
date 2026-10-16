@@ -4,7 +4,7 @@ MagicKPvP is a Paper Minecraft PvP plugin for configurable kits, custom item abi
 
 ## Features
 
-- Define multi-item kits in `items.yml` with names, materials, amounts, enchantments, attributes, potion data, lore, and buy/sell prices.
+- Define multi-item kits in `items.yml` with names, materials, amounts, enchantments, attributes, potion data, lore, and buy/sell prices. Items can be marked `unbreakable: true` to never take durability damage.
 - 15 built-in ability types: passive effects, flight, area effects, projectiles, summons, totems, decoys, black holes, chain lightning, dashes, rewinds, kill streak buffs, and silences.
 - Per-player, per-item cooldowns with readable duration strings such as `10s`.
 - Buy, sell, and select kits using commands or the paged kit menu, with a read-only preview for kits you do not own yet.
@@ -15,13 +15,14 @@ MagicKPvP is a Paper Minecraft PvP plugin for configurable kits, custom item abi
 - Action bar cooldown display.
 - Permission-based cooldown reduction.
 - Optional kit unlock requirements (XP and kills).
-- A kit selector item that is given on join and respawn, and removed when a kit is selected.
-- Combat tagging that can block kit switching.
+- A kit selector item that is given on join and respawn, and removed when a kit is selected. Joining always clears the inventory first, so nothing carries over between sessions.
+- Combat tagging that blocks escaping to spawn while tagged, with a punishment for disconnecting while tagged.
+- A kill fully restores the killer and broadcasts the kill to the whole server.
 - Kit item protection so kit items cannot be dropped or stored.
 - SQLite or MySQL storage for purchases and XP.
-- WorldGuard region flag to disable abilities in selected areas.
-- A `/spawn` command that teleports players to a configurable spawn point and resets their kit.
-- An arena teleporter with random or menu-based spot selection.
+- WorldGuard spawn region flag that disables abilities inside spawn and limits the arena to spawn.
+- A `/spawn` command that teleports players to a configurable spawn point and resets their kit, with optional join-teleport and respawn-at-spawn.
+- An arena teleporter with random or menu-based spot selection, usable only from spawn.
 - Customizable messages and menu appearance, with live reload.
 
 ## Requirements
@@ -32,11 +33,11 @@ MagicKPvP is a Paper Minecraft PvP plugin for configurable kits, custom item abi
 
 ### Soft requirements
 
-- WorldGuard: adds the `magickpvp-abilities` region flag.
+- WorldGuard: adds the `magickpvp-spawn` and `magickpvp-kit-switch` region flags.
 - LuckPerms: needed for XP ranks.
 - PlaceholderAPI: adds the `%magickpvp_...%` placeholders.
 
-Kotlin and HikariCP are downloaded by the server at startup through the `libraries` section of `plugin.yml`.
+Kotlin, HikariCP, and the SQLite and MySQL JDBC drivers are downloaded by the server at startup through the `libraries` section of `plugin.yml`, so both storage modes work out of the box.
 
 ## Installation
 
@@ -156,11 +157,17 @@ combat:
   tag-seconds: 15
   block-kit-switch: true
 
+combat-log-punishment:
+  mode: death
+  amount: 500
+
 spawn:
   coordinates: 0, 100, 0
   pitch: 0, 0
   delay-seconds: 3
   cancel-on-move: true
+  teleport-on-join: true
+  respawn-at-spawn: true
 
 menu-item:
   enabled: true
@@ -238,7 +245,7 @@ menu:
 
 ### Storage
 
-SQLite is the default and needs no setup. Set `storage.type` to `mysql` and fill in the connection details to use MySQL.
+SQLite is the default and needs no setup. Set `storage.type` to `mysql` and fill in the connection details to use MySQL. The required JDBC drivers are downloaded automatically on first start; no manual driver setup is needed for either mode.
 
 | Table | Stores |
 | --- | --- |
@@ -262,14 +269,37 @@ Ranks use a LuckPerms track. Each group in `ranks.groups` has an XP threshold, a
 - When XP changes, the plugin adds the matching group and removes the other managed groups. This also demotes players when XP is removed.
 - Ranks are re-synced on join, on startup, and on `/magickpvp reload`.
 - Groups not listed in `ranks.groups` are never touched.
+- Reaching a new rank announces it to the whole server with the `rank-up-broadcast` message, next to the private `rank-up` message.
 
 ### Combat tag
 
-Attacking or being attacked by a player tags both for `combat.tag-seconds`. While tagged, kit switching is blocked if `combat.block-kit-switch` is true. Dying or leaving clears the tag.
+Attacking or being attacked by a player tags both for `combat.tag-seconds`. While tagged, `/spawn` is blocked and a pending spawn countdown is cancelled if `combat.block-kit-switch` is true. Selecting a kit from the menu or with `/magickpvp select` still works while tagged. Dying or leaving clears the tag.
+
+When a player dies to another player, the killer is fully restored (health, hunger and saturation), their own tag is removed, and a `killed-by` broadcast announces the kill with the killer's remaining health.
+
+### Combat log punishment
+
+```yaml
+combat-log-punishment:
+  mode: death
+  amount: 500
+```
+
+Players who disconnect or time out while combat tagged are punished, depending on `mode`:
+
+| Mode | Punishment |
+| --- | --- |
+| `death` | The player dies, credited to the opponent who tagged them last |
+| `reduction` | Up to `amount` coins are withdrawn from their Vault balance |
+| `off` | Nothing happens |
+
+Only real disconnects and connection timeouts count; plugin kicks and deaths are not affected. `reduction` does nothing without an economy.
 
 ### Kit selector item
 
 When `menu-item.enabled` is true and the menu is enabled, every player without a selected kit gets a selector item. It is given on join and after respawn, and it disappears when a kit is selected (selecting a kit replaces the whole inventory). Right clicking it opens the kit menu. It cannot be moved, dropped, swapped to the off-hand, or stored in other inventories.
+
+Joining always wipes the player's inventory first (including any items kept by other plugins) before the selector item is given, so nothing can be carried over between sessions.
 
 - `slot` is a main inventory slot from 0 to 35. Slots 0 to 8 are the hotbar.
 - `material`, `name`, `lore`, and `glow` control how it looks.
@@ -285,9 +315,12 @@ spawn:
   pitch: 0, 0
   delay-seconds: 3
   cancel-on-move: true
+  teleport-on-join: true
+  respawn-at-spawn: true
 ```
 
 - `delay-seconds` is how long a player must wait before the teleport happens (0 teleports instantly). With `cancel-on-move: true`, moving or entering combat during the countdown cancels it.
+- `teleport-on-join` teleports players to spawn as soon as they join. `respawn-at-spawn` makes respawns happen at the spawn point instead of where the player died.
 - `coordinates` is `x, y, z`. `pitch` is the head rotation the player faces after teleporting, written as `yaw, pitch`.
 - `/magickpvp setspawn` saves your position and rotation. `/magickpvp setspawn <x> <y> <z>` keeps your rotation, `/magickpvp setspawn <yaw> <pitch>` keeps your position, and `/magickpvp setspawn <x> <y> <z> <yaw> <pitch>` sets everything.
 - `setspawn` also saves a `world` key. Without it, players are teleported within the world they are in.
@@ -303,6 +336,8 @@ Arena spots are teleport destinations defined in `arena.yml`. `arenaMode` in `co
 - `randomized`: teleports the player to a random spot.
 
 Arena teleports do not change the player's kit.
+
+`/magickpvp arena` (the join subcommand) can only be used from spawn; anywhere else players get the `arena-spawn-only` message. With WorldGuard installed, "from spawn" means inside a region flagged `magickpvp-spawn` (see [WorldGuard](#worldguard)). Without WorldGuard the arena can be used from anywhere.
 
 ```yaml
 arena:
@@ -433,14 +468,15 @@ When PlaceholderAPI is installed, the plugin registers these placeholders:
 | `%magickpvp_xp%` | XP |
 | `%magickpvp_rank%` | Current rank group, empty if none |
 | `%magickpvp_next_rank%` | Next rank group, empty at the top |
-| `%magickpvp_xp_needed%` | XP left for the next rank |
+| `%magickpvp_xp_needed%` | The next rank's XP threshold |
 | `%magickpvp_kills%`, `%magickpvp_deaths%` | Kills and deaths |
 | `%magickpvp_kdr%` | Kills per death, two decimals |
 | `%magickpvp_streak%`, `%magickpvp_best_streak%` | Current and best kill streak |
-| `%magickpvp_kit%`, `%magickpvp_kit_name%` | Selected kit ID and name, `none` if no kit |
+| `%magickpvp_kit%`, `%magickpvp_kit_name%` | Selected kit ID and name, `None` if no kit |
 | `%magickpvp_cooldown_<kit>:<item>%` | Seconds left on an item, `0` when ready, for example `%magickpvp_cooldown_pyromancer:staff%` |
 | `%magickpvp_cooldown%` | Seconds left on the cooldown of the ability the player used last, `0` when ready |
 | `%magickpvp_cooldown_reduction%` | The player's cooldown reduction percent |
+| `%magickpvp_combattag%` | Seconds left of the combat tag, `0` when untagged |
 | `%magickpvp_top_<stat>_<position>_name%` | Leaderboard name, `stat` is `xp`, `kills`, `deaths` or `streak` |
 | `%magickpvp_top_<stat>_<position>_value%` | Leaderboard value |
 
@@ -464,11 +500,15 @@ When enabled, players with a selected kit cannot hold items whose material is no
 
 ### WorldGuard
 
-When WorldGuard is installed, the plugin registers a state flag named `magickpvp-abilities`. It defaults to allow. Set it to `deny` on a region to disable all abilities there.
+When WorldGuard is installed, the plugin registers two state flags.
+
+`magickpvp-spawn` defaults to deny. Set it to `allow` on a region covering your spawn. Inside that region abilities are disabled and `/magickpvp arena` becomes usable; outside of it, abilities work and the arena is blocked.
 
 ```
-/rg flag spawn magickpvp-abilities deny
+/rg flag spawn magickpvp-spawn allow
 ```
+
+This flag replaces the old `magickpvp-abilities` flag from 1.1.6, with inverted meaning: instead of denying abilities on individual regions, a single allowed spawn region both silences abilities and gates the arena. Rename the flag on your spawn region when upgrading.
 
 The `magickpvp-kit-switch` flag also defaults to allow. Set it to `deny` on a region, such as the arena, to stop players who already have a kit from changing it there.
 
@@ -520,6 +560,7 @@ warrior:
 | `name`, `lore` | MiniMessage text |
 | `amount` | Stack size |
 | `glow` | Enchantment glint |
+| `unbreakable` | If true, the item never takes durability damage. Uses the vanilla unbreakable flag, so the `Unbreakable` line appears in its tooltip |
 | `enchantments` | List of `name:level` |
 | `attributes` | List with `attribute`, `amount`, `operation`, `slot`, and optionally `type: override` with `text` to replace the default tooltip |
 | `potion` | `type`, `duration`, `amplifier` for potion materials |
@@ -619,6 +660,8 @@ Messages support MiniMessage formatting such as `<red>`, `<gold>`, and `<gray>`.
 | `{time}` | `in-combat` |
 | `{player}`, `{coins}`, `{xp}` | `reward-kill`, `reward-damage` |
 | `{rank}`, `{needed}`, `{xp}` | `rank-up`, `xp-next`, `xp-self`, `xp-changed` |
+| `{player}`, `{rank}` | `rank-up-broadcast` |
+| `{victim}`, `{player}`, `{hp}` | `killed-by` |
 | `{page}`, `{pages}` | `menu-title` |
 | `{expire}` | `expiring` |
 | `{sub}` | `usage-kit` |
@@ -637,11 +680,12 @@ Messages support MiniMessage formatting such as `<red>`, `<gold>`, and `<gray>`.
 - **Buying or selling does not work:** make sure Vault and a Vault-compatible economy plugin are installed and enabled.
 - **The menu does not open:** check `enablemenu` in `config.yml` and the player's `magickpvp.menu` permission.
 - **A custom item has no ability:** check the ability `type` and YAML structure in `items.yml`, run `/magickpvp reload`, and read the console for warnings.
-- **An ability does nothing:** the player needs a selected kit, must not be silenced, and must not be in a region with `magickpvp-abilities` set to deny.
+- **An ability does nothing:** the player needs a selected kit, must not be silenced, and must not be inside a region with `magickpvp-spawn` set to allow.
 - **Cooldowns do not appear:** `cooldown` must be set on the item section and use a supported duration.
 - **Ranks are not applied:** check that `ranks.enabled` is true, LuckPerms is installed, the track exists, and every group is in the track.
 - **A kit cannot be sold:** kits granted by permission cannot be sold, only purchased kits can.
-- **Kit switching is blocked:** the player is combat tagged. Adjust `combat.tag-seconds` or `combat.block-kit-switch`.
+- **`/spawn` is blocked while tagged:** the player is in combat. Adjust `combat.tag-seconds` or `combat.block-kit-switch`. Kit selection from the menu itself always works.
+- **The arena says it can only be used from spawn:** step inside the spawn region (flagged `magickpvp-spawn` with WorldGuard) first.
 - **The plugin disables itself on start:** the database could not be opened. Check the `storage` section of `config.yml` and the console error.
 - **`/spawn` says the spawn point is not set:** `spawn.coordinates` is missing or not in `x, y, z` form, or `spawn.world` is not loaded. Run `/magickpvp setspawn`.
 - **The arena does nothing:** `arena.yml` has no valid spots or their worlds are not loaded. Check the console for warnings.

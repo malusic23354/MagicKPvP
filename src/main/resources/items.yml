@@ -1,3 +1,6 @@
+# Any item below can also carry "unbreakable: true" (alongside name/material/lore etc.)
+# to make it take no durability damage at all, e.g.:
+#   unbreakable: true
 pyromancer:
   name: "<gold>Pyromancer"
   price:

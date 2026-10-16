@@ -60,6 +60,7 @@ data class CustomItem(
     val material: Material,
     val amount: Int,
     val glow: Boolean,
+    val unbreakable: Boolean,
     val attributes: List<AttributeSpec>,
     val enchantments: Map<Enchantment, Int>,
     val lore: List<String>,
@@ -148,6 +149,7 @@ class ItemLoader(private val plugin: PluginManager) {
         val lore = custom.lore.map { messages.parse(it) }.toMutableList()
 
         if (custom.glow) meta.setEnchantmentGlintOverride(true)
+        if (custom.unbreakable) meta.isUnbreakable = true
         for ((enchant, level) in custom.enchantments) meta.addEnchant(enchant, level, true)
 
         if (custom.attributes.isNotEmpty()) {
@@ -303,6 +305,7 @@ class ItemLoader(private val plugin: PluginManager) {
             material = material,
             amount = s.getInt("amount", 1),
             glow = s.getBoolean("glow", false),
+            unbreakable = s.getBoolean("unbreakable", false),
             attributes = attributes,
             enchantments = enchantments,
             lore = s.getStringList("lore"),
