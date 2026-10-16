@@ -13,7 +13,6 @@ import org.bukkit.event.entity.PlayerDeathEvent
 import org.bukkit.event.entity.ProjectileHitEvent
 import org.bukkit.event.entity.ProjectileLaunchEvent
 import org.bukkit.event.player.PlayerEggThrowEvent
-import org.bukkit.event.player.PlayerInteractAtEntityEvent
 import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerQuitEvent
@@ -34,6 +33,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
     private val cooling = HashMap<UUID, HashSet<String>>()
     private val lastUsed = ConcurrentHashMap<UUID, String>()
     private val notices = HashMap<Pair<UUID, String>, Long>()
+    private val entityClicks = HashMap<Pair<UUID, UUID>, Long>()
     private var task: BukkitTask? = null
 
     init {
@@ -186,6 +186,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
     private fun tick() {
         val display = plugin.configuration.cooldownDisplay
         val now = System.currentTimeMillis()
+        entityClicks.values.removeIf { it <= now }
         for (player in plugin.server.onlinePlayers) {
             if (player.isDead || !plugin.kits.hasActiveKit(player)) continue
             applyPassive(player)
@@ -357,11 +358,16 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
     @EventHandler
     fun onEntityClick(event: PlayerInteractEntityEvent) {
-        if (event is PlayerInteractAtEntityEvent) return
         if (event.hand != EquipmentSlot.HAND) return
 
         val target = event.rightClicked as? Player ?: return
         val player = event.player
+
+        val key = player.uniqueId to target.uniqueId
+        val now = System.currentTimeMillis()
+        if ((entityClicks[key] ?: 0L) > now) return
+        entityClicks[key] = now + SIBLING_WINDOW_MILLIS
+
         val itemId = plugin.itemLoader.itemId(player.inventory.itemInMainHand) ?: return
         val custom = plugin.itemLoader.piece(itemId) ?: return
         if (isRangedWeapon(custom.material)) return
@@ -378,5 +384,9 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
         val used = clickAbilities.map { registry.get(it.type)?.targetClicked(it, target, player) == true }.any { it }
         if (used) startCooldown(player, itemId, custom)
+    }
+
+    private companion object {
+        const val SIBLING_WINDOW_MILLIS = 50L
     }
 }

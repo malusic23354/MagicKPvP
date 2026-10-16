@@ -42,4 +42,7 @@ class MessageManager(private val plugin: PluginManager) {
     fun send(sender: CommandSender, key: String, vararg replacements: Pair<String, String>) {
         sender.sendMessage(parse(raw("prefix") + raw(key), *replacements))
     }
+    fun broadcast(key: String, vararg replacements: Pair<String, String>) {
+        plugin.server.broadcast(parse(raw(key), *replacements))
+    }
 }

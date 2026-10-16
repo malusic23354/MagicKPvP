@@ -17,6 +17,7 @@ class SpawnCountdown(private val plugin: PluginManager) {
         var elapsed = 0
 
         plugin.messages.send(player, "spawn-countdown", "time" to seconds.toString())
+        showBar(player, seconds)
 
         pending[uuid] = plugin.server.scheduler.runTaskTimer(plugin, Runnable {
             if (!player.isOnline || player.isDead) {
@@ -40,11 +41,12 @@ class SpawnCountdown(private val plugin: PluginManager) {
                 onFinish()
                 return@Runnable
             }
-            if (elapsed % 20 == 0) {
-                val left = (total - elapsed + 19) / 20
-                player.sendActionBar(plugin.messages.component("spawn-countdown-bar", "time" to left.toString()))
-            }
+            if (elapsed % 20 == 0) showBar(player, (total - elapsed + 19) / 20)
         }, STEP.toLong(), STEP.toLong())
+    }
+
+    private fun showBar(player: Player, left: Int) {
+        player.sendActionBar(plugin.messages.component("spawn-countdown-bar", "time" to left.toString()))
     }
 
     private fun stop(uuid: UUID) {

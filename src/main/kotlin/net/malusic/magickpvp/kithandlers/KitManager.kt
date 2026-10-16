@@ -78,10 +78,6 @@ class KitManager(private val plugin: PluginManager) : Listener {
         val kit = plugin.itemLoader.get(id) ?: return fail(player, KitResult.UNKNOWN_KIT, "unknown-kit")
         if (!player.hasPermission("magickpvp.select")) return fail(player, KitResult.NO_PERMISSION, "no-permission")
         if (!owns(player, kit.id)) return fail(player, KitResult.NOT_OWNED, "no-ownership")
-        if (plugin.combat.blocksKitSwitch(player)) {
-            plugin.messages.send(player, "in-combat", "time" to plugin.combat.remainingSeconds(player).toString())
-            return KitResult.IN_COMBAT
-        }
 
         if (hasActiveKit(player) && !plugin.combat.kitSwitchAllowed(player)) {
             plugin.messages.send(player, "kit-switch-disabled")

@@ -70,7 +70,10 @@ class MenuItemManager(private val plugin: PluginManager) : Listener {
 
     @EventHandler
     fun onJoin(event: PlayerJoinEvent) {
-        give(event.player)
+        val player = event.player
+        plugin.kits.deselect(player)
+        player.inventory.clear()
+        give(player)
     }
 
     @EventHandler
@@ -104,10 +107,10 @@ class MenuItemManager(private val plugin: PluginManager) : Listener {
     fun onClick(event: InventoryClickEvent) {
         val player = event.whoClicked as? Player ?: return
         val blocked = isMenuItem(event.currentItem) ||
-            isMenuItem(event.cursor) ||
-            (event.click == ClickType.NUMBER_KEY && event.hotbarButton >= 0 &&
-                isMenuItem(player.inventory.getItem(event.hotbarButton))) ||
-            (event.click == ClickType.SWAP_OFFHAND && isMenuItem(player.inventory.itemInOffHand))
+                isMenuItem(event.cursor) ||
+                (event.click == ClickType.NUMBER_KEY && event.hotbarButton >= 0 &&
+                        isMenuItem(player.inventory.getItem(event.hotbarButton))) ||
+                (event.click == ClickType.SWAP_OFFHAND && isMenuItem(player.inventory.itemInOffHand))
         if (blocked) event.isCancelled = true
     }
 

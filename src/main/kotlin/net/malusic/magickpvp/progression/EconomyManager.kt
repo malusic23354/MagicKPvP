@@ -13,6 +13,8 @@ class EconomyManager(private val plugin: PluginManager) {
 
     fun has(player: OfflinePlayer, amount: Double): Boolean = provider()?.has(player, amount) ?: false
 
+    fun balance(player: OfflinePlayer): Double = provider()?.getBalance(player) ?: 0.0
+
     fun withdraw(player: OfflinePlayer, amount: Double): Boolean =
         provider()?.withdrawPlayer(player, amount)?.transactionSuccess() ?: false
 

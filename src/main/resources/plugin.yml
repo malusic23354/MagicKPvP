@@ -1,5 +1,5 @@
 name: MagicKPvP
-version: '1.1.6'
+version: '1.1.7'
 main: net.malusic.magickpvp.PluginManager
 api-version: '1.21.11'
 description: MagicKPvP is a plugin for kitpvp servers with custom kits and cool abilities.
@@ -9,6 +9,8 @@ softdepend: [WorldGuard, LuckPerms, PlaceholderAPI]
 libraries:
   - org.jetbrains.kotlin:kotlin-stdlib:2.2.20
   - com.zaxxer:HikariCP:6.3.0
+  - org.xerial:sqlite-jdbc:3.51.3.0
+  - com.mysql:mysql-connector-j:9.7.0
 
 commands:
   magickpvp:

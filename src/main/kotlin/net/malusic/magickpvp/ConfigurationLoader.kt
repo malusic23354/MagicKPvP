@@ -63,6 +63,13 @@ data class StatsSettings(
     val refreshSeconds: Int = 60
 )
 
+enum class CombatLogMode { OFF, DEATH, REDUCTION }
+
+data class CombatLogSettings(
+    val mode: CombatLogMode = CombatLogMode.OFF,
+    val amount: Double = 500.0
+)
+
 data class NonKitItemSettings(
     val enabled: Boolean = false,
     val removeOnClick: Boolean = true,
@@ -157,6 +164,8 @@ class ConfigurationLoader(private val plugin: PluginManager) {
     var kitUsage: KitUsageSettings = KitUsageSettings()
         private set
     var nonKitItems: NonKitItemSettings = NonKitItemSettings()
+        private set
+    var combatLog: CombatLogSettings = CombatLogSettings()
         private set
 
     fun load() {
@@ -325,6 +334,20 @@ class ConfigurationLoader(private val plugin: PluginManager) {
         streaks = StreakSettings(
             enabled = cfg.getBoolean("streak-rewards.enabled", false),
             rewards = streakRewards
+        )
+
+        val combatLogDefaults = CombatLogSettings()
+        combatLog = CombatLogSettings(
+            mode = when (val raw = cfg.getString("combat-log-punishment.mode")?.trim()?.lowercase()) {
+                null, "", "off", "none" -> CombatLogMode.OFF
+                "death" -> CombatLogMode.DEATH
+                "reduction" -> CombatLogMode.REDUCTION
+                else -> {
+                    plugin.logger.warning("combat-log-punishment.mode must be 'death', 'reduction' or 'off' (got '$raw'), using off.")
+                    CombatLogMode.OFF
+                }
+            },
+            amount = cfg.getDouble("combat-log-punishment.amount", combatLogDefaults.amount).coerceAtLeast(0.0)
         )
 
         val nonKitDefaults = NonKitItemSettings()

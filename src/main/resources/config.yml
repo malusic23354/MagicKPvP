@@ -44,11 +44,17 @@ combat:
   tag-seconds: 15
   block-kit-switch: true
 
+combat-log-punishment:
+  mode: death
+  amount: 500
+
 spawn:
   coordinates: 0, 100, 0
   pitch: 0, 0
   delay-seconds: 3
   cancel-on-move: true
+  teleport-on-join: true
+  respawn-at-spawn: true
 
 menu-item:
   enabled: true
