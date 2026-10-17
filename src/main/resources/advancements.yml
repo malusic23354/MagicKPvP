@@ -1,0 +1,128 @@
+enabled: true
+
+advancements:
+  first-blood:
+    name: "<red>First Blood"
+    description:
+      - "<gray>Kill your first player."
+    type: kills
+    amount: 1
+    icon: IRON_SWORD
+    reward:
+      coins: 100
+      xp: 10
+
+  slayer:
+    name: "<red>Slayer"
+    description:
+      - "<gray>Kill 50 players."
+    type: kills
+    amount: 50
+    icon: DIAMOND_SWORD
+    reward:
+      coins: 1000
+      xp: 100
+
+  warlord:
+    name: "<dark_red>Warlord"
+    description:
+      - "<gray>Kill 500 players."
+    type: kills
+    amount: 500
+    icon: NETHERITE_SWORD
+    reward:
+      coins: 10000
+      xp: 1000
+      broadcast: "<gold>{player} <gray>earned the <dark_red>Warlord <gray>advancement!"
+
+  hot-streak:
+    name: "<gold>Hot Streak"
+    description:
+      - "<gray>Reach a 5 kill streak."
+    type: killstreak
+    amount: 5
+    icon: BLAZE_POWDER
+    reward:
+      coins: 250
+      xp: 25
+
+  unstoppable:
+    name: "<light_purple>Unstoppable"
+    description:
+      - "<gray>Reach a 15 kill streak."
+    type: killstreak
+    amount: 15
+    icon: NETHER_STAR
+    reward:
+      coins: 2500
+      xp: 250
+      broadcast: "<gold>{player} <gray>is <light_purple>Unstoppable<gray>!"
+
+  spellcaster:
+    name: "<aqua>Spellcaster"
+    description:
+      - "<gray>Use abilities 25 times."
+    type: ability_use
+    amount: 25
+    icon: ENCHANTED_BOOK
+    reward:
+      coins: 150
+      xp: 15
+
+  archmage:
+    name: "<dark_aqua>Archmage"
+    description:
+      - "<gray>Use abilities 500 times."
+    type: ability_use
+    amount: 500
+    icon: BLAZE_ROD
+    reward:
+      coins: 3000
+      xp: 300
+
+  dash-master:
+    name: "<white>Dash Master"
+    description:
+      - "<gray>Use a dash ability 50 times."
+    type: ability_use
+    filter: dash
+    amount: 50
+    icon: FEATHER
+    reward:
+      coins: 500
+      xp: 50
+
+  sharpshooter:
+    name: "<green>Sharpshooter"
+    description:
+      - "<gray>Shoot 100 arrows."
+    type: shoot
+    filter: arrow
+    amount: 100
+    icon: BOW
+    reward:
+      coins: 300
+      xp: 30
+
+  bullseye:
+    name: "<yellow>Bullseye"
+    description:
+      - "<gray>Hit 50 players with arrows."
+    type: projectile_hit
+    filter: arrow
+    amount: 50
+    icon: TARGET
+    reward:
+      coins: 600
+      xp: 60
+
+  rough-start:
+    name: "<gray>Rough Start"
+    description:
+      - "<gray>Die 10 times."
+    type: deaths
+    amount: 10
+    icon: SKELETON_SKULL
+    reward:
+      coins: 50
+      xp: 5

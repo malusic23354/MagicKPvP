@@ -8,7 +8,7 @@ import org.bukkit.entity.Player
 
 class MagickPvpCommand(private val plugin: PluginManager) : CommandExecutor, TabCompleter {
 
-    private val subCommands = listOf("menu", "select", "buy", "sell", "info", "xp", "stats", "top", "kitusage", "spawn", "setspawn", "arena", "reload")
+    private val subCommands = listOf("menu", "select", "buy", "sell", "info", "xp", "stats", "top", "kitusage", "advancements", "spawn", "setspawn", "arena", "reload")
     private val xpActions = listOf("add", "remove", "set")
     private val arena = ArenaCommand(plugin)
 
@@ -47,6 +47,14 @@ class MagickPvpCommand(private val plugin: PluginManager) : CommandExecutor, Tab
                     messages.send(player, "menu-disabled")
                 } else {
                     plugin.kitMenu.open(player)
+                }
+            }
+            "advancements" -> {
+                val player = sender as? Player ?: return playerOnly(sender)
+                if (!plugin.advancementLoader.enabled) {
+                    messages.send(player, "advancements-disabled")
+                } else {
+                    plugin.advancementMenu.open(player)
                 }
             }
             "xp" -> handleXp(sender, args)

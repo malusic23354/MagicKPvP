@@ -9,7 +9,12 @@ import java.util.UUID
 
 data class StatsData(val kills: Long = 0L, val deaths: Long = 0L, val bestStreak: Long = 0L)
 
-data class PlayerData(val kits: Set<String>, val xp: Long, val stats: StatsData)
+data class PlayerData(
+    val kits: Set<String>,
+    val xp: Long,
+    val stats: StatsData,
+    val advancements: Map<String, AdvancementProgress> = emptyMap()
+)
 
 class SqlPlayerStorage private constructor(
     private val source: HikariDataSource,
@@ -71,6 +76,15 @@ class SqlPlayerStorage private constructor(
                 "ON DUPLICATE KEY UPDATE purchases = purchases + 1"
     }
 
+    private val saveAdvancementSql = when (type) {
+        StorageType.SQLITE ->
+            "INSERT INTO $ADVANCEMENTS (uuid, advancement_id, progress, completed) VALUES (?, ?, ?, ?) " +
+                "ON CONFLICT(uuid, advancement_id) DO UPDATE SET progress = excluded.progress, completed = excluded.completed"
+        StorageType.MYSQL ->
+            "INSERT INTO $ADVANCEMENTS (uuid, advancement_id, progress, completed) VALUES (?, ?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE progress = VALUES(progress), completed = VALUES(completed)"
+    }
+
     private fun <T> prepared(sql: String, action: (PreparedStatement) -> T): T =
         source.connection.use { connection -> connection.prepareStatement(sql).use(action) }
 
@@ -99,7 +113,12 @@ class SqlPlayerStorage private constructor(
         val stats = select("SELECT kills, deaths, best_streak FROM $STATS WHERE uuid = ?", uuid) { rows ->
             if (rows.next()) StatsData(rows.getLong(1), rows.getLong(2), rows.getLong(3)) else StatsData()
         }
-        return PlayerData(kits, xp, stats)
+        val advancements = select("SELECT advancement_id, progress, completed FROM $ADVANCEMENTS WHERE uuid = ?", uuid) { rows ->
+            val found = HashMap<String, AdvancementProgress>()
+            while (rows.next()) found[rows.getString(1)] = AdvancementProgress(rows.getLong(2), rows.getInt(3) != 0)
+            found
+        }
+        return PlayerData(kits, xp, stats, advancements)
     }
 
     fun top(stat: String, limit: Int): List<Pair<UUID, Long>> {
@@ -165,6 +184,9 @@ class SqlPlayerStorage private constructor(
             }
         }
 
+    fun saveAdvancement(uuid: UUID, id: String, progress: Long, completed: Boolean) =
+        update(saveAdvancementSql, uuid.toString(), id, progress, if (completed) 1 else 0)
+
     fun addXp(uuid: UUID, amount: Long) = update(addXpSql, uuid.toString(), amount)
 
     fun setXp(uuid: UUID, amount: Long) = update(setXpSql, uuid.toString(), amount)
@@ -184,6 +206,7 @@ class SqlPlayerStorage private constructor(
         private const val PLAYERS = "magickpvp_players"
         private const val STATS = "magickpvp_stats"
         private const val USAGE = "magickpvp_kit_usage"
+        private const val ADVANCEMENTS = "magickpvp_advancements"
 
         private const val CREATE_KITS = """
             CREATE TABLE IF NOT EXISTS $KITS (
@@ -213,6 +236,16 @@ class SqlPlayerStorage private constructor(
             CREATE TABLE IF NOT EXISTS $USAGE (
                 kit_id VARCHAR(128) NOT NULL PRIMARY KEY,
                 purchases BIGINT NOT NULL DEFAULT 0
+            )
+        """
+
+        private const val CREATE_ADVANCEMENTS = """
+            CREATE TABLE IF NOT EXISTS $ADVANCEMENTS (
+                uuid VARCHAR(36) NOT NULL,
+                advancement_id VARCHAR(128) NOT NULL,
+                progress BIGINT NOT NULL DEFAULT 0,
+                completed INT NOT NULL DEFAULT 0,
+                PRIMARY KEY (uuid, advancement_id)
             )
         """
 
@@ -249,6 +282,7 @@ class SqlPlayerStorage private constructor(
                         it.execute(CREATE_PLAYERS)
                         it.execute(CREATE_STATS)
                         it.execute(CREATE_USAGE)
+                        it.execute(CREATE_ADVANCEMENTS)
                     }
                 }
             } catch (failure: Exception) {

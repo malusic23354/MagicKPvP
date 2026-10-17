@@ -23,6 +23,12 @@ class PluginManager : JavaPlugin() {
         private set
     lateinit var stats: StatsManager
         private set
+    lateinit var advancementLoader: AdvancementLoader
+        private set
+    lateinit var advancements: AdvancementManager
+        private set
+    lateinit var advancementMenu: AdvancementMenu
+        private set
     lateinit var combat: CombatManager
         private set
     lateinit var abilities: AbilityHandler
@@ -69,6 +75,9 @@ class PluginManager : JavaPlugin() {
         kits = KitManager(this)
         experience = ExperienceManager(this)
         stats = StatsManager(this)
+        advancementLoader = AdvancementLoader(this)
+        advancements = AdvancementManager(this)
+        advancementMenu = AdvancementMenu(this)
         combat = CombatManager(this)
         abilities = AbilityHandler(this)
         kitMenu = KitMenu(this)
@@ -119,6 +128,8 @@ class PluginManager : JavaPlugin() {
         server.pluginManager.registerEvents(menuItem, this)
         server.pluginManager.registerEvents(experience, this)
         server.pluginManager.registerEvents(stats, this)
+        server.pluginManager.registerEvents(advancements, this)
+        server.pluginManager.registerEvents(advancementMenu, this)
         server.pluginManager.registerEvents(rewards, this)
         server.pluginManager.registerEvents(combat, this)
         server.pluginManager.registerEvents(protection, this)
@@ -161,6 +172,7 @@ class PluginManager : JavaPlugin() {
         spawn.load()
         arena.load()
         itemLoader.load()
+        advancementLoader.load()
         kitMenu.rebuild()
         abilities.reset()
         menuItem.refresh()

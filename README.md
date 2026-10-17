@@ -19,7 +19,8 @@ MagicKPvP is a Paper Minecraft PvP plugin for configurable kits, custom item abi
 - Combat tagging that blocks escaping to spawn while tagged, with a punishment for disconnecting while tagged.
 - A kill fully restores the killer and broadcasts the kill to the whole server.
 - Kit item protection so kit items cannot be dropped or stored.
-- SQLite or MySQL storage for purchases and XP.
+- Custom advancements for ability uses, kills, deaths, kill streaks and projectiles, with rewards and a menu that matches the kit menu.
+- SQLite or MySQL storage for purchases, XP, stats and advancement progress.
 - WorldGuard spawn region flag that disables abilities inside spawn and limits the arena to spawn.
 - A `/spawn` command that teleports players to a configurable spawn point and resets their kit, with optional join-teleport and respawn-at-spawn.
 - An arena teleporter with random or menu-based spot selection, usable only from spawn.
@@ -66,6 +67,7 @@ The main command is `/magickpvp`, with `/mkp` as an alias. `/spawn` is a shortcu
 | `/magickpvp stats [player]` | Show your stats or an online player's stats | `magickpvp.stats` |
 | `/magickpvp top [xp\|kills\|deaths\|streak]` | Show a leaderboard | `magickpvp.top` |
 | `/magickpvp kitusage [page]` | Show how many times each kit was purchased, most bought first | `magickpvp.kitusage` |
+| `/magickpvp advancements` | Open the advancements menu | `magickpvp.advancements` |
 | `/magickpvp spawn` or `/spawn` | Teleport to spawn and reset your kit | `magickpvp.spawn` |
 | `/magickpvp setspawn [x y z] [yaw pitch]` | Set the spawn point | `magickpvp.setspawn` |
 | `/magickpvp arena` | Open the arena menu or teleport to a random spot, depending on `arenaMode` | `magickpvp.arena` |
@@ -87,6 +89,7 @@ The main command is `/magickpvp`, with `/mkp` as an alias. `/spawn` is a shortcu
 | `magickpvp.stats` | Everyone | View player stats |
 | `magickpvp.top` | Everyone | View the leaderboards |
 | `magickpvp.kitusage` | Operators | View kit purchase statistics |
+| `magickpvp.advancements` | Everyone | Open the advancements menu |
 | `magickpvp.spawn` | Everyone | Teleport to spawn |
 | `magickpvp.setspawn` | Operators | Set the spawn point |
 | `magickpvp.arena` | Everyone | Use the arena teleporter |
@@ -106,6 +109,7 @@ A player owns a kit if they bought it or have its `magickpvp.kit.<id>` permissio
 - `config.yml`: menu, arena mode, spawn point, storage, rewards, ranks, combat tagging, and kit item protection.
 - `items.yml`: kits, items, and abilities. The top-level YAML key is the kit ID used by commands.
 - `arena.yml`: the arena spots players can teleport to.
+- `advancements.yml`: the advancements and their rewards.
 - `messages.yml`: every message the plugin sends. Missing keys are added automatically on load.
 
 ### config.yml
@@ -395,6 +399,44 @@ kit-usage:
   enabled: true
   page-size: 10
 ```
+
+### Advancements
+
+`/magickpvp advancements` opens a menu that uses the same size, decoration and previous/next buttons as the kit menu (`menu.size`, `menu.decoration`). Advancements are defined in `advancements.yml`, in the order they should appear. Completed advancements glow, the rest show their progress. Progress is stored in the `magickpvp_advancements` table.
+
+```yaml
+enabled: true
+
+advancements:
+  dash-master:
+    name: "<white>Dash Master"
+    description:
+      - "<gray>Use a dash ability 50 times."
+    type: ability_use
+    filter: dash
+    amount: 50
+    icon: FEATHER
+    reward:
+      coins: 500
+      xp: 50
+      commands:
+        - "give {player} diamond 1"
+      broadcast: "<gold>{player} <gray>earned <white>{name}<gray>!"
+```
+
+| Type | Counts | Filter |
+|------|--------|--------|
+| `ability_use` | Each successful ability activation | Ability type (for example `dash`) or item ID. Optional |
+| `kills` | Player kills | None |
+| `deaths` | Deaths | None |
+| `killstreak` | Completes when the player reaches that streak | None |
+| `shoot` | Projectiles launched | Projectile type (for example `arrow`). Optional |
+| `projectile_hit` | Projectiles that hit another player | Projectile type. Optional |
+
+- `amount` is the number needed to complete it. `icon` is any item material.
+- Rewards are all optional. `commands` run from the console and support `{player}` and `{advancement}`. `broadcast` supports `{player}` and `{name}`.
+- Names, descriptions and broadcasts use MiniMessage.
+- Advancements can be added or edited and applied with `/magickpvp reload`. Progress is kept by advancement ID, so do not rename IDs of advancements players have already progressed on.
 
 ### Missing options
 

@@ -120,6 +120,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
     private fun startCooldown(player: Player, itemId: String, custom: CustomItem) {
         lastUsed[player.uniqueId] = itemId
+        plugin.advancements.abilityUsed(player, itemId, custom)
         if (custom.cooldownTicks <= 0L) return
         val ticks = (custom.cooldownTicks * (100 - cooldownReduction(player)) / 100L).coerceAtLeast(1L)
         cooldowns.getOrPut(player.uniqueId) { ConcurrentHashMap() }[itemId] =

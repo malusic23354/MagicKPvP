@@ -76,6 +76,7 @@ class DataManager(private val plugin: PluginManager) : Listener {
         plugin.kits.cache(uuid, data.kits)
         plugin.experience.cache(uuid, data.xp)
         plugin.stats.cache(uuid, data.stats)
+        plugin.advancements.cache(uuid, data.advancements)
     }
 
     @EventHandler
@@ -97,6 +98,7 @@ class DataManager(private val plugin: PluginManager) : Listener {
         plugin.kits.uncache(uuid)
         plugin.experience.uncache(uuid)
         plugin.stats.uncache(uuid)
+        plugin.advancements.uncache(uuid)
     }
 
     private fun importLegacyYaml(target: SqlPlayerStorage) {
