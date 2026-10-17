@@ -170,14 +170,19 @@ class KitManager(private val plugin: PluginManager) : Listener {
         if (!isPurchased(player, kit.id)) return fail(player, KitResult.CANNOT_SELL, "cannot-sell")
         if (!plugin.economy.available) return fail(player, KitResult.NO_ECONOMY, "no-economy")
 
-        plugin.economy.deposit(player, kit.sellPrice)
+        if (!plugin.economy.deposit(player, kit.sellPrice)) return fail(player, KitResult.NO_ECONOMY, "no-economy")
         val seller = player.uniqueId
         purchased[seller]?.remove(kit.id)
         plugin.data.write { it.removeKit(seller, kit.id) }
-        removeFromInventory(player, kit.id)
+        if (activeKit[seller] == kit.id) {
+            deselect(player)
+            plugin.menuItem.give(player)
+        } else {
+            removeFromInventory(player, kit.id)
+        }
 
         plugin.messages.send(
-            player, "solled",
+            player, "sold",
             "kit" to plugin.messages.plain(kit.name),
             "price" to plugin.economy.format(kit.sellPrice)
         )

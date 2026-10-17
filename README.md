@@ -15,7 +15,7 @@ MagicKPvP is a Paper Minecraft PvP plugin for configurable kits, custom item abi
 - Action bar cooldown display.
 - Permission-based cooldown reduction.
 - Optional kit unlock requirements (XP and kills).
-- A kit selector item that is given on join and respawn, and removed when a kit is selected. Joining always clears the inventory first, so nothing carries over between sessions.
+- A kit selector item, a stats item and an advancements item that are given on join and respawn, and removed when a kit is selected. Joining always clears the inventory first, so nothing carries over between sessions.
 - Combat tagging that blocks escaping to spawn while tagged, with a punishment for disconnecting while tagged.
 - A kill fully restores the killer and broadcasts the kill to the whole server.
 - Kit item protection so kit items cannot be dropped or stored.
@@ -182,6 +182,24 @@ menu-item:
   lore:
     - "<gray>Right click to choose a kit."
 
+stats-item:
+  enabled: true
+  slot: 3
+  material: BOOK
+  name: "<aqua>Your Stats"
+  glow: false
+  lore:
+    - "<gray>Right click to view your stats."
+
+advancements-item:
+  enabled: true
+  slot: 5
+  material: KNOWLEDGE_BOOK
+  name: "<green>Advancements"
+  glow: false
+  lore:
+    - "<gray>Right click to view your advancements."
+
 stats:
   leaderboard-size: 10
   leaderboard-refresh-seconds: 60
@@ -299,7 +317,7 @@ Players who disconnect or time out while combat tagged are punished, depending o
 
 Only real disconnects and connection timeouts count; plugin kicks and deaths are not affected. `reduction` does nothing without an economy.
 
-### Kit selector item
+### Kit selector, stats and advancements items
 
 When `menu-item.enabled` is true and the menu is enabled, every player without a selected kit gets a selector item. It is given on join and after respawn, and it disappears when a kit is selected (selecting a kit replaces the whole inventory). Right clicking it opens the kit menu. It cannot be moved, dropped, swapped to the off-hand, or stored in other inventories.
 
@@ -308,6 +326,13 @@ Joining always wipes the player's inventory first (including any items kept by o
 - `slot` is a main inventory slot from 0 to 35. Slots 0 to 8 are the hotbar.
 - `material`, `name`, `lore`, and `glow` control how it looks.
 - If the slot already holds another item, that item is moved to a free slot or dropped.
+
+Two more items are given next to the kit selector and behave the same way (same options, same protection):
+
+- `stats-item` (default slot 3) opens a menu with the player's XP, kills, deaths, K/D, current streak, best streak and completed advancements. It needs `magickpvp.stats`.
+- `advancements-item` (default slot 5) opens the advancements menu. It needs `magickpvp.advancements` and is not given while `enabled` is false in `advancements.yml`.
+
+Each item can be turned off with its own `enabled: false`. Give each one a different slot.
 
 ### Spawn
 
@@ -698,7 +723,7 @@ Messages support MiniMessage formatting such as `<red>`, `<gold>`, and `<gray>`.
 | Placeholder | Used in |
 | --- | --- |
 | `{item}`, `{time}` | `cooldown` |
-| `{kit}`, `{price}` | `selected`, `purchased`, `solled` |
+| `{kit}`, `{price}` | `selected`, `purchased`, `sold` |
 | `{time}` | `in-combat` |
 | `{player}`, `{coins}`, `{xp}` | `reward-kill`, `reward-damage` |
 | `{rank}`, `{needed}`, `{xp}` | `rank-up`, `xp-next`, `xp-self`, `xp-changed` |

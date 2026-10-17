@@ -1,6 +1,5 @@
 package net.malusic.magickpvp
 
-import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -19,7 +18,7 @@ class AdvancementMenu(private val plugin: PluginManager) : Listener {
 
     fun open(player: Player, page: Int = 1) {
         val size = plugin.configuration.menuSize
-        val slots = contentSlots(size)
+        val slots = MenuSupport.contentSlots(size)
         val all = plugin.advancementLoader.all
         val pageCount = maxOf(1, (all.size + slots.size - 1) / slots.size)
         val current = page.coerceIn(1, pageCount)
@@ -34,11 +33,11 @@ class AdvancementMenu(private val plugin: PluginManager) : Listener {
         )
         val inventory = plugin.server.createInventory(holder, size, title)
         holder.backing = inventory
-        decorate(inventory, size)
+        MenuSupport.decorate(plugin, inventory, size)
 
         if (pageCount > 1) {
-            if (current > 1) inventory.setItem(previousSlot(size), navItem("previous-page"))
-            if (current < pageCount) inventory.setItem(nextSlot(size), navItem("next-page"))
+            if (current > 1) inventory.setItem(MenuSupport.previousSlot(size), MenuSupport.navItem(plugin, "previous-page"))
+            if (current < pageCount) inventory.setItem(MenuSupport.nextSlot(size), MenuSupport.navItem(plugin, "next-page"))
         }
 
         all.drop((current - 1) * slots.size).take(slots.size).forEachIndexed { index, definition ->
@@ -58,12 +57,12 @@ class AdvancementMenu(private val plugin: PluginManager) : Listener {
         val slot = event.rawSlot
         if (slot < 0 || slot >= event.inventory.size) return
 
-        val slots = contentSlots(size)
+        val slots = MenuSupport.contentSlots(size)
         val pageCount = maxOf(1, (plugin.advancementLoader.all.size + slots.size - 1) / slots.size)
-        if (slot == previousSlot(size) && holder.page > 1) {
-            later { open(player, holder.page - 1) }
-        } else if (slot == nextSlot(size) && holder.page < pageCount) {
-            later { open(player, holder.page + 1) }
+        if (slot == MenuSupport.previousSlot(size) && holder.page > 1) {
+            MenuSupport.later(plugin) { open(player, holder.page - 1) }
+        } else if (slot == MenuSupport.nextSlot(size) && holder.page < pageCount) {
+            MenuSupport.later(plugin) { open(player, holder.page + 1) }
         }
     }
 
@@ -105,46 +104,5 @@ class AdvancementMenu(private val plugin: PluginManager) : Listener {
         meta.lore(lore)
         stack.itemMeta = meta
         return stack
-    }
-
-    private fun decorate(inventory: Inventory, size: Int) {
-        val material = plugin.configuration.decoration ?: return
-        val pane = decorationItem(material)
-        for (slot in 0 until size) {
-            if (isEdge(slot, size)) inventory.setItem(slot, pane)
-        }
-    }
-
-    private fun contentSlots(size: Int): List<Int> =
-        (0 until size).filter { !isEdge(it, size) }.ifEmpty { (0 until size).toList() }
-
-    private fun decorationItem(material: Material): ItemStack {
-        val stack = ItemStack(material)
-        val meta = stack.itemMeta
-        meta.isHideTooltip = true
-        stack.itemMeta = meta
-        return stack
-    }
-
-    private fun navItem(messageKey: String): ItemStack {
-        val stack = ItemStack(Material.ARROW)
-        val meta = stack.itemMeta
-        meta.displayName(plugin.messages.component(messageKey))
-        stack.itemMeta = meta
-        return stack
-    }
-
-    private fun isEdge(slot: Int, size: Int): Boolean {
-        val rows = size / 9
-        val row = slot / 9
-        val column = slot % 9
-        return row == 0 || row == rows - 1 || column == 0 || column == 8
-    }
-
-    private fun previousSlot(size: Int) = size - 9 + 3
-    private fun nextSlot(size: Int) = size - 9 + 5
-
-    private fun later(action: () -> Unit) {
-        plugin.server.scheduler.runTask(plugin, Runnable { action() })
     }
 }

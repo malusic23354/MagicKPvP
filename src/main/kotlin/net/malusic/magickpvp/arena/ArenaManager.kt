@@ -1,15 +1,15 @@
 package net.malusic.magickpvp
 
+import java.io.File
+import java.io.IOException
+import java.util.Locale
+import java.util.logging.Level
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.World
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
-import java.io.File
-import java.io.IOException
-import java.util.Locale
-import java.util.logging.Level
 
 class ArenaManager(private val plugin: PluginManager) {
 
@@ -80,12 +80,12 @@ class ArenaManager(private val plugin: PluginManager) {
     private fun label(spot: ArenaSpot): String = plugin.messages.plain(spot.name ?: spot.id)
 
     private fun parse(id: String, section: ConfigurationSection): ArenaSpot? {
-        val coordinates = numbers(section.getString("coordinates"), 3)
+        val coordinates = parseNumbers(section.getString("coordinates"), 3)
         if (coordinates == null) {
             plugin.logger.warning("Arena spot '$id' needs coordinates like 'x, y, z', skipping it.")
             return null
         }
-        val rotation = numbers(section.getString("pitch"), 2) ?: listOf(0.0, 0.0)
+        val rotation = parseNumbers(section.getString("pitch"), 2) ?: listOf(0.0, 0.0)
 
         val rawMaterial = section.getString("material")
         val material = rawMaterial?.let { Material.matchMaterial(it) }?.takeIf { it.isItem && !it.isAir }
@@ -115,8 +115,8 @@ class ArenaManager(private val plugin: PluginManager) {
         for (spot in spots.values) {
             val section = root.createSection(spot.id)
             spot.world?.let { section.set("world", it) }
-            section.set("coordinates", "${format(spot.x)}, ${format(spot.y)}, ${format(spot.z)}")
-            section.set("pitch", "${format(spot.yaw.toDouble())}, ${format(spot.pitch.toDouble())}")
+            section.set("coordinates", "${formatCoordinate(spot.x)}, ${formatCoordinate(spot.y)}, ${formatCoordinate(spot.z)}")
+            section.set("pitch", "${formatCoordinate(spot.yaw.toDouble())}, ${formatCoordinate(spot.pitch.toDouble())}")
             spot.material?.let { section.set("material", it.name) }
             spot.slot?.let { section.set("slot", it) }
             spot.name?.let { section.set("name", it) }
@@ -129,11 +129,28 @@ class ArenaManager(private val plugin: PluginManager) {
         }
     }
 
-    private fun numbers(raw: String?, count: Int): List<Double>? {
-        val parts = raw?.split(',')?.map { it.trim().toDoubleOrNull() } ?: return null
-        if (parts.size != count || parts.any { it == null }) return null
-        return parts.filterNotNull()
-    }
-
-    private fun format(value: Double): String = String.format(Locale.US, "%.2f", value)
 }
+
+data class ArenaSpot(
+    val id: String,
+    val world: String?,
+    val x: Double,
+    val y: Double,
+    val z: Double,
+    val yaw: Float,
+    val pitch: Float,
+    val material: Material?,
+    val slot: Int?,
+    val name: String?,
+    val glow: Boolean
+)
+
+enum class ArenaMode { RANDOMIZED, SELECTION }
+
+internal fun parseNumbers(raw: String?, count: Int): List<Double>? {
+    val parts = raw?.split(',')?.map { it.trim().toDoubleOrNull() } ?: return null
+    if (parts.size != count || parts.any { it == null }) return null
+    return parts.filterNotNull()
+}
+
+internal fun formatCoordinate(value: Double): String = String.format(Locale.US, "%.2f", value)

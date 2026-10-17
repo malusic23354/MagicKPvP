@@ -10,6 +10,46 @@ import org.bukkit.inventory.Inventory
 import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
 
+internal object MenuSupport {
+
+    fun isEdge(slot: Int, size: Int): Boolean {
+        val rows = size / 9
+        val row = slot / 9
+        val column = slot % 9
+        return row == 0 || row == rows - 1 || column == 0 || column == 8
+    }
+
+    fun contentSlots(size: Int): List<Int> =
+        (0 until size).filter { !isEdge(it, size) }.ifEmpty { (0 until size).toList() }
+
+    fun previousSlot(size: Int) = size - 9 + 3
+
+    fun nextSlot(size: Int) = size - 9 + 5
+
+    fun decorate(plugin: PluginManager, inventory: Inventory, size: Int) {
+        val material = plugin.configuration.decoration ?: return
+        val pane = ItemStack(material)
+        val meta = pane.itemMeta
+        meta.isHideTooltip = true
+        pane.itemMeta = meta
+        for (slot in 0 until size) {
+            if (isEdge(slot, size)) inventory.setItem(slot, pane)
+        }
+    }
+
+    fun navItem(plugin: PluginManager, messageKey: String): ItemStack {
+        val stack = ItemStack(Material.ARROW)
+        val meta = stack.itemMeta
+        meta.displayName(plugin.messages.component(messageKey))
+        stack.itemMeta = meta
+        return stack
+    }
+
+    fun later(plugin: PluginManager, action: () -> Unit) {
+        plugin.server.scheduler.runTask(plugin, Runnable { action() })
+    }
+}
+
 class KitMenu(private val plugin: PluginManager) : Listener {
 
     private class MenuHolder(val page: Int, val preview: Boolean = false) : InventoryHolder {
@@ -60,7 +100,7 @@ class KitMenu(private val plugin: PluginManager) : Listener {
             }
         }
 
-        val autoSlots = contentSlots(size)
+        val autoSlots = MenuSupport.contentSlots(size)
         var pageNumber = 1
         var cursor = 0
         for ((kitId, lore) in queue) {
@@ -95,11 +135,11 @@ class KitMenu(private val plugin: PluginManager) : Listener {
         )
         val inventory = plugin.server.createInventory(holder, size, title)
         holder.backing = inventory
-        decorate(inventory, size)
+        MenuSupport.decorate(plugin, inventory, size)
 
         if (pageCount > 1) {
-            if (currentPage > 1) inventory.setItem(previousSlot(size), navItem("previous-page"))
-            if (currentPage < pageCount) inventory.setItem(nextSlot(size), navItem("next-page"))
+            if (currentPage > 1) inventory.setItem(MenuSupport.previousSlot(size), MenuSupport.navItem(plugin, "previous-page"))
+            if (currentPage < pageCount) inventory.setItem(MenuSupport.nextSlot(size), MenuSupport.navItem(plugin, "next-page"))
         }
 
         for ((slot, placement) in pages[currentPage - 1]) {
@@ -123,10 +163,10 @@ class KitMenu(private val plugin: PluginManager) : Listener {
         val placement = pages.getOrNull(holder.page - 1)?.get(slot)
         if (placement == null) {
             if (pageCount > 1) {
-                if (slot == previousSlot(size) && holder.page > 1) {
-                    later { open(player, holder.page - 1) }
-                } else if (slot == nextSlot(size) && holder.page < pageCount) {
-                    later { open(player, holder.page + 1) }
+                if (slot == MenuSupport.previousSlot(size) && holder.page > 1) {
+                    MenuSupport.later(plugin) { open(player, holder.page - 1) }
+                } else if (slot == MenuSupport.nextSlot(size) && holder.page < pageCount) {
+                    MenuSupport.later(plugin) { open(player, holder.page + 1) }
                 }
             }
             return
@@ -146,12 +186,12 @@ class KitMenu(private val plugin: PluginManager) : Listener {
 
     private fun leftClick(player: Player, kitId: String, page: Int) {
         if (plugin.kits.owns(player, kitId)) {
-            later {
+            MenuSupport.later(plugin) {
                 if (plugin.kits.select(player, kitId) == KitResult.SUCCESS) player.closeInventory()
             }
             return
         }
-        later {
+        MenuSupport.later(plugin) {
             when (plugin.kits.buy(player, kitId)) {
                 KitResult.SUCCESS -> open(player, page)
                 KitResult.INSUFFICIENT_FUNDS -> player.closeInventory()
@@ -162,10 +202,10 @@ class KitMenu(private val plugin: PluginManager) : Listener {
 
     private fun rightClick(player: Player, kitId: String, page: Int) {
         if (!plugin.kits.owns(player, kitId)) {
-            later { openPreview(player, kitId) }
+            MenuSupport.later(plugin) { openPreview(player, kitId) }
             return
         }
-        later {
+        MenuSupport.later(plugin) {
             if (plugin.kits.sell(player, kitId) == KitResult.SUCCESS) open(player, page)
         }
     }
@@ -211,52 +251,11 @@ class KitMenu(private val plugin: PluginManager) : Listener {
         val title = plugin.messages.component("menu-title", "page" to "1", "pages" to "1")
         val inventory = plugin.server.createInventory(holder, size, title)
         holder.backing = inventory
-        decorate(inventory, size)
-        val slots = contentSlots(size)
+        MenuSupport.decorate(plugin, inventory, size)
+        val slots = MenuSupport.contentSlots(size)
         kit.pieces.values.forEachIndexed { index, piece ->
             if (index < slots.size) inventory.setItem(slots[index], plugin.itemLoader.build(piece, tagged = false))
         }
         player.openInventory(inventory)
-    }
-
-    private fun decorate(inventory: Inventory, size: Int) {
-        val material = plugin.configuration.decoration ?: return
-        val pane = decorationItem(material)
-        for (slot in 0 until size) {
-            if (isEdge(slot, size)) inventory.setItem(slot, pane)
-        }
-    }
-
-    private fun contentSlots(size: Int): List<Int> =
-        (0 until size).filter { !isEdge(it, size) }.ifEmpty { (0 until size).toList() }
-
-    private fun decorationItem(material: Material): ItemStack {
-        val stack = ItemStack(material)
-        val meta = stack.itemMeta
-        meta.isHideTooltip = true
-        stack.itemMeta = meta
-        return stack
-    }
-
-    private fun navItem(messageKey: String): ItemStack {
-        val stack = ItemStack(Material.ARROW)
-        val meta = stack.itemMeta
-        meta.displayName(plugin.messages.component(messageKey))
-        stack.itemMeta = meta
-        return stack
-    }
-
-    private fun isEdge(slot: Int, size: Int): Boolean {
-        val rows = size / 9
-        val row = slot / 9
-        val column = slot % 9
-        return row == 0 || row == rows - 1 || column == 0 || column == 8
-    }
-
-    private fun previousSlot(size: Int) = size - 9 + 3
-    private fun nextSlot(size: Int) = size - 9 + 5
-
-    private fun later(action: () -> Unit) {
-        plugin.server.scheduler.runTask(plugin, Runnable { action() })
     }
 }

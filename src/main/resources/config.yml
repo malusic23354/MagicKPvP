@@ -56,6 +56,15 @@ spawn:
   teleport-on-join: true
   respawn-at-spawn: true
 
+stats-item:
+  enabled: true
+  slot: 0
+  material: BOOK
+  name: "<aqua>Your Stats"
+  glow: false
+  lore:
+    - "<gray>Right click to view your stats."
+
 menu-item:
   enabled: true
   slot: 4
@@ -64,6 +73,15 @@ menu-item:
   glow: true
   lore:
     - "<gray>Right click to choose a kit."
+
+advancements-item:
+  enabled: true
+  slot: 8
+  material: KNOWLEDGE_BOOK
+  name: "<green>Advancements"
+  glow: false
+  lore:
+    - "<gray>Right click to view your advancements."
 
 stats:
   leaderboard-size: 10

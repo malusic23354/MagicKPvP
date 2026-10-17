@@ -18,39 +18,63 @@ import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 
+enum class MenuItemType(val id: String) { KITS("kits"), STATS("stats"), ADVANCEMENTS("advancements") }
+
 class MenuItemManager(private val plugin: PluginManager) : Listener {
 
     private val key = NamespacedKey(plugin, "menu_item")
+    private val typeKey = NamespacedKey(plugin, "menu_item_type")
 
-    private fun active(): Boolean = plugin.configuration.menuItem.enabled && plugin.configuration.enableMenu
+    private fun settings(type: MenuItemType): MenuItemSettings = when (type) {
+        MenuItemType.KITS -> plugin.configuration.menuItem
+        MenuItemType.STATS -> plugin.configuration.statsItem
+        MenuItemType.ADVANCEMENTS -> plugin.configuration.advancementsItem
+    }
+
+    private fun active(type: MenuItemType): Boolean = settings(type).enabled && when (type) {
+        MenuItemType.KITS -> plugin.configuration.enableMenu
+        MenuItemType.STATS -> true
+        MenuItemType.ADVANCEMENTS -> plugin.advancementLoader.enabled
+    }
 
     fun isMenuItem(stack: ItemStack?): Boolean {
         if (stack == null || stack.type.isAir || !stack.hasItemMeta()) return false
         return stack.itemMeta.persistentDataContainer.has(key, PersistentDataType.BYTE)
     }
 
-    private fun build(): ItemStack {
-        val settings = plugin.configuration.menuItem
+    private fun typeOf(stack: ItemStack?): MenuItemType? {
+        if (!isMenuItem(stack)) return null
+        val id = stack!!.itemMeta.persistentDataContainer.get(typeKey, PersistentDataType.STRING)
+        return MenuItemType.entries.firstOrNull { it.id == id } ?: MenuItemType.KITS
+    }
+
+    private fun build(type: MenuItemType): ItemStack {
+        val settings = settings(type)
         val stack = ItemStack(settings.material)
         val meta = stack.itemMeta
         meta.displayName(plugin.messages.parse(settings.name))
         if (settings.lore.isNotEmpty()) meta.lore(settings.lore.map { plugin.messages.parse(it) })
         if (settings.glow) meta.setEnchantmentGlintOverride(true)
         meta.persistentDataContainer.set(key, PersistentDataType.BYTE, 1.toByte())
+        meta.persistentDataContainer.set(typeKey, PersistentDataType.STRING, type.id)
         stack.itemMeta = meta
         return stack
     }
 
     fun give(player: Player) {
         remove(player)
-        if (!active() || plugin.kits.hasActiveKit(player)) return
+        if (plugin.kits.hasActiveKit(player)) return
 
         val inventory = player.inventory
-        val slot = plugin.configuration.menuItem.slot
-        val existing = inventory.getItem(slot)
-        inventory.setItem(slot, build())
-        if (existing != null && !existing.type.isAir) {
-            inventory.addItem(existing).values.forEach { player.world.dropItemNaturally(player.location, it) }
+        val displaced = ArrayList<ItemStack>()
+        for (type in MenuItemType.entries) {
+            if (!active(type)) continue
+            val slot = settings(type).slot
+            inventory.getItem(slot)?.takeIf { !it.type.isAir }?.let { displaced += it }
+            inventory.setItem(slot, build(type))
+        }
+        for (stack in displaced) {
+            inventory.addItem(stack).values.forEach { player.world.dropItemNaturally(player.location, it) }
         }
     }
 
@@ -64,7 +88,7 @@ class MenuItemManager(private val plugin: PluginManager) : Listener {
 
     fun refresh() {
         for (player in plugin.server.onlinePlayers) {
-            if (!player.isDead && active() && !plugin.kits.hasActiveKit(player)) give(player) else remove(player)
+            if (!player.isDead) give(player) else remove(player)
         }
     }
 
@@ -88,19 +112,31 @@ class MenuItemManager(private val plugin: PluginManager) : Listener {
     fun onInteract(event: PlayerInteractEvent) {
         if (event.action == Action.PHYSICAL) return
         if (event.hand != EquipmentSlot.HAND) return
-        if (!isMenuItem(event.item)) return
+        val type = typeOf(event.item) ?: return
 
         event.isCancelled = true
         val player = event.player
-        if (!plugin.configuration.enableMenu) {
-            plugin.messages.send(player, "menu-disabled")
-            return
+        val messages = plugin.messages
+        when (type) {
+            MenuItemType.KITS -> {
+                if (!plugin.configuration.enableMenu) {
+                    messages.send(player, "menu-disabled")
+                } else if (!player.hasPermission("magickpvp.menu")) {
+                    messages.send(player, "no-permission")
+                } else {
+                    plugin.kitMenu.open(player)
+                }
+            }
+            MenuItemType.STATS -> {
+                if (!player.hasPermission("magickpvp.stats")) messages.send(player, "no-permission")
+                else plugin.statsMenu.open(player)
+            }
+            MenuItemType.ADVANCEMENTS -> {
+                if (!plugin.advancementLoader.enabled) messages.send(player, "advancements-disabled")
+                else if (!player.hasPermission("magickpvp.advancements")) messages.send(player, "no-permission")
+                else plugin.advancementMenu.open(player)
+            }
         }
-        if (!player.hasPermission("magickpvp.menu")) {
-            plugin.messages.send(player, "no-permission")
-            return
-        }
-        plugin.kitMenu.open(player)
     }
 
     @EventHandler(ignoreCancelled = true)

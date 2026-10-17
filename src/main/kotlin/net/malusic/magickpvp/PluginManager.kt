@@ -23,6 +23,8 @@ class PluginManager : JavaPlugin() {
         private set
     lateinit var stats: StatsManager
         private set
+    lateinit var statsMenu: StatsMenu
+        private set
     lateinit var advancementLoader: AdvancementLoader
         private set
     lateinit var advancements: AdvancementManager
@@ -75,6 +77,7 @@ class PluginManager : JavaPlugin() {
         kits = KitManager(this)
         experience = ExperienceManager(this)
         stats = StatsManager(this)
+        statsMenu = StatsMenu(this)
         advancementLoader = AdvancementLoader(this)
         advancements = AdvancementManager(this)
         advancementMenu = AdvancementMenu(this)
@@ -128,6 +131,7 @@ class PluginManager : JavaPlugin() {
         server.pluginManager.registerEvents(menuItem, this)
         server.pluginManager.registerEvents(experience, this)
         server.pluginManager.registerEvents(stats, this)
+        server.pluginManager.registerEvents(statsMenu, this)
         server.pluginManager.registerEvents(advancements, this)
         server.pluginManager.registerEvents(advancementMenu, this)
         server.pluginManager.registerEvents(rewards, this)

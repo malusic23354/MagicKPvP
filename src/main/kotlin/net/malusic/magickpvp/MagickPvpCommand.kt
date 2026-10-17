@@ -316,3 +316,15 @@ class MagickPvpCommand(private val plugin: PluginManager) : CommandExecutor, Tab
         return true
     }
 }
+
+class SpawnCommand(private val plugin: PluginManager) : CommandExecutor {
+
+    override fun onCommand(sender: CommandSender, command: Command, label: String, args: Array<out String>): Boolean {
+        val player = sender as? Player ?: run {
+            plugin.messages.send(sender, "player-only")
+            return true
+        }
+        plugin.spawn.teleport(player)
+        return true
+    }
+}

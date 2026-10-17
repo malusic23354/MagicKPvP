@@ -29,3 +29,5 @@ class KitUsage(private val plugin: PluginManager) {
 
     fun total(): Long = plugin.itemLoader.ids.sumOf { purchases(it) }
 }
+
+data class KitUsageEntry(val kitId: String, val name: String, val purchases: Long)

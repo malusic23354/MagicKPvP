@@ -33,7 +33,7 @@ class PlaceholderHook(private val plugin: PluginManager) : PlaceholderExpansion(
             "xp" -> xp.toString()
             "rank" -> ranks?.rankFor(xp)?.group.orEmpty()
             "next_rank" -> ranks?.nextRank(xp)?.group.orEmpty()
-            "xp_needed" -> ranks?.nextRank(xp)?.let { (it.xp).toString() } ?: "0"
+            "xp_needed" -> ranks?.nextRank(xp)?.xp?.toString() ?: "0"
             "kills" -> plugin.stats.kills(uuid).toString()
             "deaths" -> plugin.stats.deaths(uuid).toString()
             "streak" -> plugin.stats.streak(uuid).toString()

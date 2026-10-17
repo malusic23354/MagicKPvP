@@ -149,6 +149,10 @@ class ConfigurationLoader(private val plugin: PluginManager) {
         private set
     var menuItem: MenuItemSettings = MenuItemSettings()
         private set
+    var statsItem: MenuItemSettings = STATS_ITEM_DEFAULTS
+        private set
+    var advancementsItem: MenuItemSettings = ADVANCEMENTS_ITEM_DEFAULTS
+        private set
     var statsSettings: StatsSettings = StatsSettings()
         private set
     var cooldownDisplay: CooldownDisplaySettings = CooldownDisplaySettings()
@@ -274,17 +278,9 @@ class ConfigurationLoader(private val plugin: PluginManager) {
             blockKitSwitch = cfg.getBoolean("combat.block-kit-switch", true)
         )
 
-        val itemDefaults = MenuItemSettings()
-        menuItem = MenuItemSettings(
-            enabled = cfg.getBoolean("menu-item.enabled", itemDefaults.enabled),
-            slot = cfg.getInt("menu-item.slot", itemDefaults.slot).coerceIn(0, 35),
-            material = cfg.getString("menu-item.material")
-                ?.let { Material.matchMaterial(it) }
-                ?.takeIf { it.isItem && !it.isAir } ?: itemDefaults.material,
-            name = cfg.getString("menu-item.name") ?: itemDefaults.name,
-            lore = cfg.getStringList("menu-item.lore"),
-            glow = cfg.getBoolean("menu-item.glow", itemDefaults.glow)
-        )
+        menuItem = menuItemSettings(cfg, "menu-item", MenuItemSettings())
+        statsItem = menuItemSettings(cfg, "stats-item", STATS_ITEM_DEFAULTS)
+        advancementsItem = menuItemSettings(cfg, "advancements-item", ADVANCEMENTS_ITEM_DEFAULTS)
 
         statsSettings = StatsSettings(
             leaderboardSize = cfg.getInt("stats.leaderboard-size", 10).coerceIn(1, 50),
@@ -367,7 +363,34 @@ class ConfigurationLoader(private val plugin: PluginManager) {
         )
     }
 
+    private fun menuItemSettings(cfg: YamlConfiguration, path: String, defaults: MenuItemSettings) = MenuItemSettings(
+        enabled = cfg.getBoolean("$path.enabled", defaults.enabled),
+        slot = cfg.getInt("$path.slot", defaults.slot).coerceIn(0, 35),
+        material = cfg.getString("$path.material")
+            ?.let { Material.matchMaterial(it) }
+            ?.takeIf { it.isItem && !it.isAir } ?: defaults.material,
+        name = cfg.getString("$path.name") ?: defaults.name,
+        lore = if (cfg.isList("$path.lore")) cfg.getStringList("$path.lore") else defaults.lore,
+        glow = cfg.getBoolean("$path.glow", defaults.glow)
+    )
+
     private companion object {
         const val MAX_PAGES = 100
+
+        val STATS_ITEM_DEFAULTS = MenuItemSettings(
+            slot = 3,
+            material = Material.BOOK,
+            name = "<aqua>Your Stats",
+            lore = listOf("<gray>Right click to view your stats."),
+            glow = false
+        )
+
+        val ADVANCEMENTS_ITEM_DEFAULTS = MenuItemSettings(
+            slot = 5,
+            material = Material.KNOWLEDGE_BOOK,
+            name = "<green>Advancements",
+            lore = listOf("<gray>Right click to view your advancements."),
+            glow = false
+        )
     }
 }

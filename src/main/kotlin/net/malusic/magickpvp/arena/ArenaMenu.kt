@@ -30,11 +30,11 @@ class ArenaMenu(private val plugin: PluginManager) : Listener {
         )
         val inventory = plugin.server.createInventory(holder, size, title)
         holder.backing = inventory
-        decorate(inventory, size)
+        MenuSupport.decorate(plugin, inventory, size)
 
         if (layout.size > 1) {
-            if (current > 1) inventory.setItem(previousSlot(size), navItem("previous-page"))
-            if (current < layout.size) inventory.setItem(nextSlot(size), navItem("next-page"))
+            if (current > 1) inventory.setItem(MenuSupport.previousSlot(size), MenuSupport.navItem(plugin, "previous-page"))
+            if (current < layout.size) inventory.setItem(MenuSupport.nextSlot(size), MenuSupport.navItem(plugin, "next-page"))
         }
 
         for ((slot, spot) in layout[current - 1]) {
@@ -57,16 +57,16 @@ class ArenaMenu(private val plugin: PluginManager) : Listener {
         val spot = holder.layout[holder.page - 1][slot]
         if (spot == null) {
             if (holder.layout.size > 1) {
-                if (slot == previousSlot(size) && holder.page > 1) {
-                    later { open(player, holder.page - 1) }
-                } else if (slot == nextSlot(size) && holder.page < holder.layout.size) {
-                    later { open(player, holder.page + 1) }
+                if (slot == MenuSupport.previousSlot(size) && holder.page > 1) {
+                    MenuSupport.later(plugin) { open(player, holder.page - 1) }
+                } else if (slot == MenuSupport.nextSlot(size) && holder.page < holder.layout.size) {
+                    MenuSupport.later(plugin) { open(player, holder.page + 1) }
                 }
             }
             return
         }
 
-        later {
+        MenuSupport.later(plugin) {
             val current = plugin.arena.get(spot.id) ?: return@later
             if (plugin.arena.teleport(player, current)) player.closeInventory()
         }
@@ -96,7 +96,7 @@ class ArenaMenu(private val plugin: PluginManager) : Listener {
             }
         }
 
-        val autoSlots = contentSlots(size)
+        val autoSlots = MenuSupport.contentSlots(size)
         var pageNumber = 1
         var cursor = 0
         for (spot in queue) {
@@ -123,46 +123,5 @@ class ArenaMenu(private val plugin: PluginManager) : Listener {
         if (spot.glow) meta.setEnchantmentGlintOverride(true)
         stack.itemMeta = meta
         return stack
-    }
-
-    private fun decorate(inventory: Inventory, size: Int) {
-        val material = plugin.configuration.decoration ?: return
-        val pane = decorationItem(material)
-        for (slot in 0 until size) {
-            if (isEdge(slot, size)) inventory.setItem(slot, pane)
-        }
-    }
-
-    private fun contentSlots(size: Int): List<Int> =
-        (0 until size).filter { !isEdge(it, size) }.ifEmpty { (0 until size).toList() }
-
-    private fun decorationItem(material: Material): ItemStack {
-        val stack = ItemStack(material)
-        val meta = stack.itemMeta
-        meta.isHideTooltip = true
-        stack.itemMeta = meta
-        return stack
-    }
-
-    private fun navItem(messageKey: String): ItemStack {
-        val stack = ItemStack(Material.ARROW)
-        val meta = stack.itemMeta
-        meta.displayName(plugin.messages.component(messageKey))
-        stack.itemMeta = meta
-        return stack
-    }
-
-    private fun isEdge(slot: Int, size: Int): Boolean {
-        val rows = size / 9
-        val row = slot / 9
-        val column = slot % 9
-        return row == 0 || row == rows - 1 || column == 0 || column == 8
-    }
-
-    private fun previousSlot(size: Int) = size - 9 + 3
-    private fun nextSlot(size: Int) = size - 9 + 5
-
-    private fun later(action: () -> Unit) {
-        plugin.server.scheduler.runTask(plugin, Runnable { action() })
     }
 }

@@ -1,5 +1,9 @@
 package net.malusic.magickpvp
 
+import java.io.File
+import java.io.IOException
+import java.util.UUID
+import java.util.logging.Level
 import org.bukkit.Location
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
@@ -8,10 +12,7 @@ import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
 import org.bukkit.event.player.PlayerRespawnEvent
-import java.io.File
-import java.io.IOException
-import java.util.Locale
-import java.util.logging.Level
+import org.bukkit.scheduler.BukkitTask
 
 class SpawnManager(private val plugin: PluginManager) : Listener {
 
@@ -36,14 +37,14 @@ class SpawnManager(private val plugin: PluginManager) : Listener {
         teleportOnJoin = cfg.getBoolean("spawn.teleport-on-join", false)
         respawnAtSpawn = cfg.getBoolean("spawn.respawn-at-spawn", false)
 
-        val coordinates = numbers(cfg.getString("spawn.coordinates"), 3)
+        val coordinates = parseNumbers(cfg.getString("spawn.coordinates"), 3)
         if (coordinates == null) {
             if (cfg.contains("spawn.coordinates")) {
                 plugin.logger.warning("spawn.coordinates must look like 'x, y, z', the spawn point is disabled.")
             }
             return
         }
-        val rotation = numbers(cfg.getString("spawn.pitch"), 2) ?: listOf(0.0, 0.0)
+        val rotation = parseNumbers(cfg.getString("spawn.pitch"), 2) ?: listOf(0.0, 0.0)
 
         worldName = cfg.getString("spawn.world")?.takeIf { it.isNotBlank() }
         x = coordinates[0]
@@ -66,8 +67,8 @@ class SpawnManager(private val plugin: PluginManager) : Listener {
         val file = File(plugin.dataFolder, "config.yml")
         val cfg = YamlConfiguration.loadConfiguration(file)
         cfg.set("spawn.world", worldName)
-        cfg.set("spawn.coordinates", "${format(x)}, ${format(y)}, ${format(z)}")
-        cfg.set("spawn.pitch", "${format(yaw.toDouble())}, ${format(pitch.toDouble())}")
+        cfg.set("spawn.coordinates", "${formatCoordinate(x)}, ${formatCoordinate(y)}, ${formatCoordinate(z)}")
+        cfg.set("spawn.pitch", "${formatCoordinate(yaw.toDouble())}, ${formatCoordinate(pitch.toDouble())}")
         try {
             cfg.save(file)
         } catch (failure: IOException) {
@@ -75,7 +76,7 @@ class SpawnManager(private val plugin: PluginManager) : Listener {
         }
     }
 
-    fun describe(): String = "${format(x)}, ${format(y)}, ${format(z)}"
+    fun describe(): String = "${formatCoordinate(x)}, ${formatCoordinate(y)}, ${formatCoordinate(z)}"
 
     fun teleport(player: Player): Boolean {
         val target = location(player)
@@ -127,11 +128,58 @@ class SpawnManager(private val plugin: PluginManager) : Listener {
         return Location(world, x, y, z, yaw, pitch)
     }
 
-    private fun numbers(raw: String?, count: Int): List<Double>? {
-        val parts = raw?.split(',')?.map { it.trim().toDoubleOrNull() } ?: return null
-        if (parts.size != count || parts.any { it == null }) return null
-        return parts.filterNotNull()
+}
+
+class SpawnCountdown(private val plugin: PluginManager) {
+
+    private val pending = HashMap<UUID, BukkitTask>()
+
+    fun isPending(player: Player): Boolean = pending.containsKey(player.uniqueId)
+
+    fun start(player: Player, seconds: Int, cancelOnMove: Boolean, onFinish: () -> Unit) {
+        val uuid = player.uniqueId
+        val origin = player.location.clone()
+        val total = seconds * 20
+        var elapsed = 0
+
+        plugin.messages.send(player, "spawn-countdown", "time" to seconds.toString())
+        showBar(player, seconds)
+
+        pending[uuid] = plugin.server.scheduler.runTaskTimer(plugin, Runnable {
+            if (!player.isOnline || player.isDead) {
+                stop(uuid)
+                return@Runnable
+            }
+            if (cancelOnMove && (player.world != origin.world || player.location.distanceSquared(origin) > 0.25)) {
+                stop(uuid)
+                plugin.messages.send(player, "spawn-cancelled")
+                return@Runnable
+            }
+            if (plugin.combat.blocksKitSwitch(player)) {
+                stop(uuid)
+                plugin.messages.send(player, "spawn-in-combat", "time" to plugin.combat.remainingSeconds(player).toString())
+                return@Runnable
+            }
+
+            elapsed += STEP
+            if (elapsed >= total) {
+                stop(uuid)
+                onFinish()
+                return@Runnable
+            }
+            if (elapsed % 20 == 0) showBar(player, (total - elapsed + 19) / 20)
+        }, STEP.toLong(), STEP.toLong())
     }
 
-    private fun format(value: Double): String = String.format(Locale.US, "%.2f", value)
+    private fun showBar(player: Player, left: Int) {
+        player.sendActionBar(plugin.messages.component("spawn-countdown-bar", "time" to left.toString()))
+    }
+
+    private fun stop(uuid: UUID) {
+        pending.remove(uuid)?.cancel()
+    }
+
+    private companion object {
+        const val STEP = 5
+    }
 }
