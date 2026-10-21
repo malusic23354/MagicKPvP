@@ -12,12 +12,41 @@ import org.bukkit.event.player.PlayerArmorStandManipulateEvent
 import org.bukkit.event.world.EntitiesLoadEvent
 import java.util.UUID
 
+internal abstract class TrackedDamageListener<T : TrackedDamageListener.Target> : Listener {
+
+    interface Target {
+        val owner: UUID
+        var health: Double
+    }
+
+    protected abstract fun target(entityId: UUID): T?
+
+    protected abstract fun onKilled(target: T, attacker: Player)
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    fun onTrackedDamage(event: EntityDamageEvent) {
+        val tracked = target(event.entity.uniqueId) ?: return
+        if (event.isCancelled) return
+        event.isCancelled = true
+
+        val attacker = (event as? EntityDamageByEntityEvent)?.attacker() ?: return
+        if (attacker.uniqueId == tracked.owner) return
+
+        tracked.health -= event.damage.coerceAtLeast(1.0)
+        if (tracked.health <= 0.0) onKilled(tracked, attacker)
+    }
+}
+
 internal abstract class StandAbility<T : StandAbility.Tracked>(
     protected val plugin: PluginManager,
     tempName: String
-) : AbilityBehavior, Listener {
+) : AbilityBehavior, TrackedDamageListener<T>() {
 
-    open class Tracked(val stand: ArmorStand, val owner: UUID, var health: Double)
+    open class Tracked(
+        val stand: ArmorStand,
+        override val owner: UUID,
+        override var health: Double
+    ) : Target
 
     private val temp = TempEntities(plugin, tempName)
     private val byOwner = HashMap<UUID, T>()
@@ -59,20 +88,11 @@ internal abstract class StandAbility<T : StandAbility.Tracked>(
         all().forEach { remove(it, false) }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
-    fun onDamage(event: EntityDamageEvent) {
-        val item = byStand[event.entity.uniqueId] ?: return
-        if (event.isCancelled) return
-        event.isCancelled = true
+    override fun target(entityId: UUID): T? = byStand[entityId]
 
-        val attacker = (event as? EntityDamageByEntityEvent)?.attacker() ?: return
-        if (attacker.uniqueId == item.owner) return
-
-        item.health -= event.damage.coerceAtLeast(1.0)
-        if (item.health <= 0.0) {
-            destroyed(item, attacker)
-            remove(item, true)
-        }
+    override fun onKilled(target: T, attacker: Player) {
+        destroyed(target, attacker)
+        remove(target, true)
     }
 
     @EventHandler

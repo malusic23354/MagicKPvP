@@ -127,23 +127,14 @@ class PluginManager : JavaPlugin() {
         syncAllRanks()
         stats.start()
 
-        server.pluginManager.registerEvents(data, this)
-        server.pluginManager.registerEvents(spawn, this)
-        server.pluginManager.registerEvents(abilities, this)
-        server.pluginManager.registerEvents(kits, this)
-        server.pluginManager.registerEvents(kitMenu, this)
-        server.pluginManager.registerEvents(menuItem, this)
-        server.pluginManager.registerEvents(experience, this)
-        server.pluginManager.registerEvents(stats, this)
-        server.pluginManager.registerEvents(statsMenu, this)
-        server.pluginManager.registerEvents(advancements, this)
-        server.pluginManager.registerEvents(advancementMenu, this)
-        server.pluginManager.registerEvents(rewards, this)
-        server.pluginManager.registerEvents(combat, this)
-        server.pluginManager.registerEvents(protection, this)
-        server.pluginManager.registerEvents(nonKitItems, this)
-        server.pluginManager.registerEvents(combatLog, this)
-        server.pluginManager.registerEvents(arenaMenu, this)
+        val listeners = listOf(
+            data, spawn, abilities, kits, kitMenu, menuItem, experience, stats,
+            statsMenu, advancements, advancementMenu, rewards, combat, protection,
+            nonKitItems, combatLog, arenaMenu
+        )
+        for (listener in listeners) {
+            server.pluginManager.registerEvents(listener, this)
+        }
         abilities.start()
 
         val magickPvpCommand = MagickPvpCommand(this)

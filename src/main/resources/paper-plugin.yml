@@ -1,5 +1,5 @@
 name: MagicKPvP
-version: '1.2.1'
+version: '1.2.2'
 main: net.malusic.magickpvp.PluginManager
 loader: net.malusic.magickpvp.loader.MagicKPvPPluginLoader
 api-version: '1.21.11'

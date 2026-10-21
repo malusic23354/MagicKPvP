@@ -79,9 +79,18 @@ class KitManager(private val plugin: PluginManager) : Listener {
         if (!player.hasPermission("magickpvp.select")) return fail(player, KitResult.NO_PERMISSION, "no-permission")
         if (!owns(player, kit.id)) return fail(player, KitResult.NOT_OWNED, "no-ownership")
 
-        if (hasActiveKit(player) && !plugin.combat.kitSwitchAllowed(player)) {
-            plugin.messages.send(player, "kit-switch-disabled")
-            return KitResult.REGION_BLOCKED
+        if (hasActiveKit(player)) {
+            if (plugin.combat.blocksKitSwitch(player)) {
+                plugin.messages.send(
+                    player, "in-combat",
+                    "time" to plugin.combat.remainingSeconds(player).toString()
+                )
+                return KitResult.IN_COMBAT
+            }
+            if (!plugin.combat.kitSwitchAllowed(player)) {
+                plugin.messages.send(player, "kit-switch-disabled")
+                return KitResult.REGION_BLOCKED
+            }
         }
 
         plugin.abilities.releaseAll(player.uniqueId)
@@ -168,6 +177,13 @@ class KitManager(private val plugin: PluginManager) : Listener {
         if (!player.hasPermission("magickpvp.sell")) return fail(player, KitResult.NO_PERMISSION, "no-permission")
         if (!owns(player, kit.id)) return fail(player, KitResult.NOT_OWNED, "no-ownership")
         if (!isPurchased(player, kit.id)) return fail(player, KitResult.CANNOT_SELL, "cannot-sell")
+        if (plugin.combat.blocksKitSwitch(player)) {
+            plugin.messages.send(
+                player, "in-combat",
+                "time" to plugin.combat.remainingSeconds(player).toString()
+            )
+            return KitResult.IN_COMBAT
+        }
         if (!plugin.economy.available) return fail(player, KitResult.NO_ECONOMY, "no-economy")
 
         if (!plugin.economy.deposit(player, kit.sellPrice)) return fail(player, KitResult.NO_ECONOMY, "no-economy")

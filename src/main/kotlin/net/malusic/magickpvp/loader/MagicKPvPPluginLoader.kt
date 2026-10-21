@@ -7,6 +7,7 @@ import org.eclipse.aether.artifact.DefaultArtifact
 import org.eclipse.aether.graph.Dependency
 import org.eclipse.aether.repository.RemoteRepository
 
+@Suppress("UnstableApiUsage")
 class MagicKPvPPluginLoader : PluginLoader {
 
     override fun classloader(classpathBuilder: PluginClasspathBuilder) {

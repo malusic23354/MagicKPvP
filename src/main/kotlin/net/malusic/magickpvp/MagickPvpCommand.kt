@@ -49,7 +49,10 @@ class MagickPvpCommand(private val plugin: PluginManager) {
 
     fun buildSpawn(): LiteralCommandNode<CommandSourceStack> = Commands.literal("spawn")
         .requires { it.sender.hasPermission("magickpvp.spawn") }
-        .executes { ctx -> teleportToSpawn(ctx.source.sender) }
+        .executes { ctx ->
+            teleportToSpawn(ctx.source.sender)
+            1
+        }
         .build()
 
     private fun menuNode() = Commands.literal("menu")
@@ -103,7 +106,10 @@ class MagickPvpCommand(private val plugin: PluginManager) {
 
     private fun spawnNode() = Commands.literal("spawn")
         .requires { it.sender.hasPermission("magickpvp.spawn") }
-        .executes { ctx -> teleportToSpawn(ctx.source.sender) }
+        .executes { ctx ->
+            teleportToSpawn(ctx.source.sender)
+            1
+        }
 
     private fun setSpawnNode() = Commands.literal("setspawn")
         .requires { it.sender.hasPermission("magickpvp.setspawn") }
@@ -120,13 +126,6 @@ class MagickPvpCommand(private val plugin: PluginManager) {
                 }
         )
 
-    /**
-     * Builds a `select`/`buy`/`sell` subcommand node that takes a single kit id argument.
-     *
-     * @param sub the subcommand literal, also used for the `magickpvp.<sub>` permission
-     * @param suggestions kit id suggestions for the kit argument
-     * @param action invoked with the player and the typed kit id
-     */
     private fun kitNode(
         sub: String,
         suggestions: (Player) -> List<String>,
@@ -293,13 +292,13 @@ class MagickPvpCommand(private val plugin: PluginManager) {
                 )
         )
 
-    private fun teleportToSpawn(sender: CommandSender): Int {
-        val player = sender as? Player ?: run {
+    private fun teleportToSpawn(sender: CommandSender) {
+        val player = sender as? Player
+        if (player == null) {
             playerOnly(sender)
-            return 1
+            return
         }
         plugin.spawn.teleport(player)
-        return 1
     }
 
     private fun handleStats(sender: CommandSender, targetName: String?) {

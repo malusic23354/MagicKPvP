@@ -6,14 +6,12 @@ import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
 
 class AdvancementMenu(private val plugin: PluginManager) : Listener {
 
-    private class MenuHolder(val page: Int) : InventoryHolder {
-        lateinit var backing: Inventory
-        override fun getInventory(): Inventory = backing
+    private class MenuHolder(val page: Int) : MenuSupport.BackedHolder {
+        override lateinit var backing: Inventory
     }
 
     fun open(player: Player, page: Int = 1) {
@@ -31,14 +29,7 @@ class AdvancementMenu(private val plugin: PluginManager) : Listener {
             "done" to plugin.advancements.completedCount(player.uniqueId).toString(),
             "total" to all.size.toString()
         )
-        val inventory = plugin.server.createInventory(holder, size, title)
-        holder.backing = inventory
-        MenuSupport.decorate(plugin, inventory, size)
-
-        if (pageCount > 1) {
-            if (current > 1) inventory.setItem(MenuSupport.previousSlot(size), MenuSupport.navItem(plugin, "previous-page"))
-            if (current < pageCount) inventory.setItem(MenuSupport.nextSlot(size), MenuSupport.navItem(plugin, "next-page"))
-        }
+        val inventory = MenuSupport.createPage(plugin, holder, size, title, current, pageCount)
 
         all.drop((current - 1) * slots.size).take(slots.size).forEachIndexed { index, definition ->
             inventory.setItem(slots[index], icon(player, definition))
@@ -59,11 +50,7 @@ class AdvancementMenu(private val plugin: PluginManager) : Listener {
 
         val slots = MenuSupport.contentSlots(size)
         val pageCount = maxOf(1, (plugin.advancementLoader.all.size + slots.size - 1) / slots.size)
-        if (slot == MenuSupport.previousSlot(size) && holder.page > 1) {
-            MenuSupport.later(plugin) { open(player, holder.page - 1) }
-        } else if (slot == MenuSupport.nextSlot(size) && holder.page < pageCount) {
-            MenuSupport.later(plugin) { open(player, holder.page + 1) }
-        }
+        MenuSupport.handleNavClick(plugin, slot, size, holder.page, pageCount) { open(player, it) }
     }
 
     @EventHandler

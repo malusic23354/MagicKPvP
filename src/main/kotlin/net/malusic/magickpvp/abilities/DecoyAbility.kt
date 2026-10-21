@@ -5,15 +5,11 @@ import org.bukkit.Location
 import org.bukkit.Particle
 import org.bukkit.block.BlockFace
 import org.bukkit.entity.Mannequin
+import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
-import org.bukkit.event.EventPriority
-import org.bukkit.event.Listener
-import org.bukkit.event.entity.EntityDamageByEntityEvent
-import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.PlayerDeathEvent
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import org.bukkit.event.world.EntitiesLoadEvent
-import org.bukkit.potion.PotionEffectType
 import org.bukkit.util.Vector
 import java.util.UUID
 import java.util.concurrent.ThreadLocalRandom
@@ -22,21 +18,21 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior, Listener {
+internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior, TrackedDamageListener<DecoyAbility.Decoy>() {
 
     override val key = "decoy"
 
-    private class Decoy(
+    internal class Decoy(
         val npc: Mannequin,
-        val owner: UUID,
-        var health: Double,
+        override val owner: UUID,
+        override var health: Double,
         val expiresAt: Long,
         val effects: List<TimedEffect>,
         val origin: Location,
         val speed: Double,
         val radius: Double,
         val interval: Int
-    ) {
+    ) : Target {
         var yaw = 0f
         var moving = false
         var ticksLeft = 0
@@ -218,20 +214,11 @@ internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior
         mover = null
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
-    fun onDamage(event: EntityDamageEvent) {
-        val decoy = byNpc[event.entity.uniqueId] ?: return
-        if (event.isCancelled) return
-        event.isCancelled = true
+    override fun target(entityId: UUID): Decoy? = byNpc[entityId]
 
-        val attacker = (event as? EntityDamageByEntityEvent)?.attacker() ?: return
-        if (attacker.uniqueId == decoy.owner) return
-
-        decoy.health -= event.damage.coerceAtLeast(1.0)
-        if (decoy.health <= 0.0) {
-            decoy.effects.forEach { it.applyTo(attacker) }
-            remove(decoy, true)
-        }
+    override fun onKilled(target: Decoy, attacker: Player) {
+        target.effects.forEach { it.applyTo(attacker) }
+        remove(target, true)
     }
 
     @EventHandler

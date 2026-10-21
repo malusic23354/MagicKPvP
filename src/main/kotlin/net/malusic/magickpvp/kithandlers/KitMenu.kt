@@ -1,5 +1,6 @@
 package net.malusic.magickpvp
 
+import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
@@ -45,6 +46,46 @@ internal object MenuSupport {
         return stack
     }
 
+    interface BackedHolder : InventoryHolder {
+        var backing: Inventory
+
+        override fun getInventory(): Inventory = backing
+    }
+
+    fun createPage(
+        plugin: PluginManager,
+        holder: BackedHolder,
+        size: Int,
+        title: Component,
+        current: Int,
+        pageCount: Int
+    ): Inventory {
+        val inventory = plugin.server.createInventory(holder, size, title)
+        holder.backing = inventory
+        decorate(plugin, inventory, size)
+        if (pageCount > 1) {
+            if (current > 1) inventory.setItem(previousSlot(size), navItem(plugin, "previous-page"))
+            if (current < pageCount) inventory.setItem(nextSlot(size), navItem(plugin, "next-page"))
+        }
+        return inventory
+    }
+
+    fun handleNavClick(
+        plugin: PluginManager,
+        slot: Int,
+        size: Int,
+        current: Int,
+        pageCount: Int,
+        open: (Int) -> Unit
+    ) {
+        if (pageCount <= 1) return
+        if (slot == previousSlot(size) && current > 1) {
+            later(plugin) { open(current - 1) }
+        } else if (slot == nextSlot(size) && current < pageCount) {
+            later(plugin) { open(current + 1) }
+        }
+    }
+
     fun later(plugin: PluginManager, action: () -> Unit) {
         plugin.server.globalRegionScheduler.run(plugin) { action() }
     }
@@ -52,9 +93,8 @@ internal object MenuSupport {
 
 class KitMenu(private val plugin: PluginManager) : Listener {
 
-    private class MenuHolder(val page: Int, val preview: Boolean = false) : InventoryHolder {
-        lateinit var backing: Inventory
-        override fun getInventory(): Inventory = backing
+    private class MenuHolder(val page: Int, val preview: Boolean = false) : MenuSupport.BackedHolder {
+        override lateinit var backing: Inventory
     }
 
     private class Placement(val kitId: String, val lore: List<String>, val displayItem: String? = null)
@@ -133,14 +173,7 @@ class KitMenu(private val plugin: PluginManager) : Listener {
             "page" to currentPage.toString(),
             "pages" to pageCount.toString()
         )
-        val inventory = plugin.server.createInventory(holder, size, title)
-        holder.backing = inventory
-        MenuSupport.decorate(plugin, inventory, size)
-
-        if (pageCount > 1) {
-            if (currentPage > 1) inventory.setItem(MenuSupport.previousSlot(size), MenuSupport.navItem(plugin, "previous-page"))
-            if (currentPage < pageCount) inventory.setItem(MenuSupport.nextSlot(size), MenuSupport.navItem(plugin, "next-page"))
-        }
+        val inventory = MenuSupport.createPage(plugin, holder, size, title, currentPage, pageCount)
 
         for ((slot, placement) in pages[currentPage - 1]) {
             kitIcon(player, placement)?.let { inventory.setItem(slot, it) }
@@ -162,13 +195,7 @@ class KitMenu(private val plugin: PluginManager) : Listener {
 
         val placement = pages.getOrNull(holder.page - 1)?.get(slot)
         if (placement == null) {
-            if (pageCount > 1) {
-                if (slot == MenuSupport.previousSlot(size) && holder.page > 1) {
-                    MenuSupport.later(plugin) { open(player, holder.page - 1) }
-                } else if (slot == MenuSupport.nextSlot(size) && holder.page < pageCount) {
-                    MenuSupport.later(plugin) { open(player, holder.page + 1) }
-                }
-            }
+            MenuSupport.handleNavClick(plugin, slot, size, holder.page, pageCount) { open(player, it) }
             return
         }
 
@@ -249,9 +276,7 @@ class KitMenu(private val plugin: PluginManager) : Listener {
         val size = plugin.configuration.menuSize
         val holder = MenuHolder(1, preview = true)
         val title = plugin.messages.component("menu-title", "page" to "1", "pages" to "1")
-        val inventory = plugin.server.createInventory(holder, size, title)
-        holder.backing = inventory
-        MenuSupport.decorate(plugin, inventory, size)
+        val inventory = MenuSupport.createPage(plugin, holder, size, title, 1, 1)
         val slots = MenuSupport.contentSlots(size)
         kit.pieces.values.forEachIndexed { index, piece ->
             if (index < slots.size) inventory.setItem(slots[index], plugin.itemLoader.build(piece, tagged = false))

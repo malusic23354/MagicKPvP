@@ -28,7 +28,7 @@ internal class TotemAbility(plugin: PluginManager) : StandAbility<TotemAbility.T
         val effects: List<TimedEffect>,
         val heal: Double,
         val damage: Double
-    ) : StandAbility.Tracked(stand, owner, health)
+    ) : Tracked(stand, owner, health)
 
     override fun activate(context: AbilityContext, ability: Ability, index: Int): Boolean {
         val owner = context.player

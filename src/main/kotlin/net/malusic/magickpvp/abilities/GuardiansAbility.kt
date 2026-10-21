@@ -88,7 +88,7 @@ class GuardiansAbility(private val plugin: PluginManager) : AbilityBehavior, Lis
     private fun prepare(mob: Mob, owner: Player, cfg: ConfigurationSection) {
         mob.isPersistent = false
         mob.removeWhenFarAway = false
-        mob.setCanPickupItems(false)
+        mob.canPickupItems = false
 
         (mob as? Tameable)?.let {
             it.isTamed = true

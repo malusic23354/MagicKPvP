@@ -49,7 +49,7 @@ class WorldGuardHook : AbilityZoneCheck {
                 val created = StateFlag(name, default)
                 registry.register(created)
                 created
-            } catch (conflict: FlagConflictException) {
+            } catch (_: FlagConflictException) {
                 val existing = registry.get(name)
                 if (existing is StateFlag) {
                     existing

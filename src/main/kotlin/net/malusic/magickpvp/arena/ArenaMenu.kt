@@ -7,14 +7,12 @@ import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
 
 class ArenaMenu(private val plugin: PluginManager) : Listener {
 
-    private class MenuHolder(val page: Int, val layout: List<Map<Int, ArenaSpot>>) : InventoryHolder {
-        lateinit var backing: Inventory
-        override fun getInventory(): Inventory = backing
+    private class MenuHolder(val page: Int, val layout: List<Map<Int, ArenaSpot>>) : MenuSupport.BackedHolder {
+        override lateinit var backing: Inventory
     }
 
     fun open(player: Player, page: Int = 1) {
@@ -28,14 +26,7 @@ class ArenaMenu(private val plugin: PluginManager) : Listener {
             "page" to current.toString(),
             "pages" to layout.size.toString()
         )
-        val inventory = plugin.server.createInventory(holder, size, title)
-        holder.backing = inventory
-        MenuSupport.decorate(plugin, inventory, size)
-
-        if (layout.size > 1) {
-            if (current > 1) inventory.setItem(MenuSupport.previousSlot(size), MenuSupport.navItem(plugin, "previous-page"))
-            if (current < layout.size) inventory.setItem(MenuSupport.nextSlot(size), MenuSupport.navItem(plugin, "next-page"))
-        }
+        val inventory = MenuSupport.createPage(plugin, holder, size, title, current, layout.size)
 
         for ((slot, spot) in layout[current - 1]) {
             inventory.setItem(slot, icon(spot))
@@ -52,17 +43,11 @@ class ArenaMenu(private val plugin: PluginManager) : Listener {
         val player = event.whoClicked as? Player ?: return
         val slot = event.rawSlot
         val size = event.inventory.size
-        if (slot < 0 || slot >= size) return
+        if (slot !in 0 until size) return
 
         val spot = holder.layout[holder.page - 1][slot]
         if (spot == null) {
-            if (holder.layout.size > 1) {
-                if (slot == MenuSupport.previousSlot(size) && holder.page > 1) {
-                    MenuSupport.later(plugin) { open(player, holder.page - 1) }
-                } else if (slot == MenuSupport.nextSlot(size) && holder.page < holder.layout.size) {
-                    MenuSupport.later(plugin) { open(player, holder.page + 1) }
-                }
-            }
+            MenuSupport.handleNavClick(plugin, slot, size, holder.page, holder.layout.size) { open(player, it) }
             return
         }
 

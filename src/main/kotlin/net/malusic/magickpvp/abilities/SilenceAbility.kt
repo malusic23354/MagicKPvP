@@ -77,7 +77,7 @@ class SilenceAbility(private val plugin: PluginManager) : AbilityBehavior, Liste
                     includeOwner = cfg.getBoolean("silence-self", false),
                     linger = linger,
                     effects = cfg.timedEffects("effects", linger) {
-                        plugin.componentLogger.warn("Silence has an unknown effect '$it'.")
+                        warnUnknownEffect(it)
                     }
                 )
                 zones += zone
@@ -96,9 +96,13 @@ class SilenceAbility(private val plugin: PluginManager) : AbilityBehavior, Liste
     private fun single(owner: Player, target: Player, ability: Ability) {
         val ticks = ability.config.ticks("duration", 100L)
         val effects = ability.config.timedEffects("effects", ticks) {
-            plugin.componentLogger.warn("Silence has an unknown effect '$it'.")
+            warnUnknownEffect(it)
         }
         silence(owner, target, ability, ticks, ticks / 20L, effects)
+    }
+
+    private fun warnUnknownEffect(raw: String) {
+        plugin.componentLogger.warn("Silence has an unknown effect '$raw'.")
     }
 
     private fun cleanse(owner: Player, cfg: ConfigurationSection) {

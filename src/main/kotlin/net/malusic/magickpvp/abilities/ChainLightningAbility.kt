@@ -6,6 +6,7 @@ import org.bukkit.Particle
 import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 import java.util.UUID
+import kotlin.math.pow
 
 class ChainLightningAbility(private val plugin: PluginManager) : AbilityBehavior {
 
@@ -93,7 +94,7 @@ class ChainLightningAbility(private val plugin: PluginManager) : AbilityBehavior
         line(from, point, settings)
         if (settings.lightning) target.world.strikeLightningEffect(target.location)
 
-        val damage = settings.damage * Math.pow(settings.falloff, step.toDouble())
+        val damage = settings.damage * settings.falloff.pow(step.toDouble())
         if (damage > 0.0) target.damage(damage, owner)
         settings.effects.forEach { it.applyTo(target) }
 

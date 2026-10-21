@@ -19,10 +19,6 @@ class ArenaCommand(private val plugin: PluginManager) {
         plugin.messages.send(sender, key, "spot" to name)
     }
 
-    /**
-     * Adds or updates an arena spot. [options] holds the optional tokens after the spot name:
-     * `[x y z] [yaw pitch] [material] [slot] [glow] [display name]`, mirroring the old argument parsing.
-     */
     fun setOrAdd(player: Player, action: String, name: String, options: List<String>) {
         val messages = plugin.messages
         val parsed = parse(options) ?: run {
@@ -49,34 +45,30 @@ class ArenaCommand(private val plugin: PluginManager) {
         val coordinates = parsed.coordinates ?: listOf(base.x, base.y, base.z)
         val rotation = parsed.rotation ?: listOf(base.yaw.toDouble(), base.pitch.toDouble())
 
-        val spot = if (existing == null) {
-            ArenaSpot(
-                id = name,
-                world = player.world.name,
-                x = coordinates[0],
-                y = coordinates[1],
-                z = coordinates[2],
-                yaw = rotation[0].toFloat(),
-                pitch = rotation[1].toFloat(),
-                material = parsed.material,
-                slot = parsed.slot,
-                name = parsed.name,
-                glow = parsed.glow ?: false
-            )
-        } else {
-            existing.copy(
-                world = player.world.name,
-                x = coordinates[0],
-                y = coordinates[1],
-                z = coordinates[2],
-                yaw = rotation[0].toFloat(),
-                pitch = rotation[1].toFloat(),
-                material = parsed.material ?: existing.material,
-                slot = parsed.slot ?: existing.slot,
-                name = parsed.name ?: existing.name,
-                glow = parsed.glow ?: existing.glow
-            )
-        }
+        val spot = existing?.copy(
+            world = player.world.name,
+            x = coordinates[0],
+            y = coordinates[1],
+            z = coordinates[2],
+            yaw = rotation[0].toFloat(),
+            pitch = rotation[1].toFloat(),
+            material = parsed.material ?: existing.material,
+            slot = parsed.slot ?: existing.slot,
+            name = parsed.name ?: existing.name,
+            glow = parsed.glow ?: existing.glow
+        ) ?: ArenaSpot(
+            id = name,
+            world = player.world.name,
+            x = coordinates[0],
+            y = coordinates[1],
+            z = coordinates[2],
+            yaw = rotation[0].toFloat(),
+            pitch = rotation[1].toFloat(),
+            material = parsed.material,
+            slot = parsed.slot,
+            name = parsed.name,
+            glow = parsed.glow ?: false
+        )
 
         plugin.arena.put(spot)
         messages.send(player, if (existing == null) "arena-added" else "arena-updated", "spot" to spot.id)

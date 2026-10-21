@@ -19,6 +19,8 @@ interface AbilityBehavior {
 
     fun activate(context: AbilityContext, ability: Ability, index: Int): Boolean = true
 
+    fun freeActivation(player: Player): Boolean = false
+
     fun passive(player: Player, ability: Ability) {}
 
     fun targetClicked(ability: Ability, target: Player, inflictor: Player): Boolean = true

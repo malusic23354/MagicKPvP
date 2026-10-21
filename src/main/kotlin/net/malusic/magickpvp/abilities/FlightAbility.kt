@@ -62,7 +62,7 @@ class FlightAbility(private val plugin: PluginManager) : AbilityBehavior {
             if (!player.allowFlight) {
                 player.allowFlight = true
             }
-            if (!player.isFlying && !player.isOnGround) {
+            if (!player.isFlying && !player.world.hasCollisionsIn(player.boundingBox.shift(0.0, -0.1, 0.0))) {
                 player.isFlying = true
             }
 

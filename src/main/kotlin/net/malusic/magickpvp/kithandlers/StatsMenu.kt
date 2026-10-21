@@ -7,24 +7,20 @@ import org.bukkit.event.Listener
 import org.bukkit.event.inventory.InventoryClickEvent
 import org.bukkit.event.inventory.InventoryDragEvent
 import org.bukkit.inventory.Inventory
-import org.bukkit.inventory.InventoryHolder
 import org.bukkit.inventory.ItemStack
 import java.util.Locale
 
 class StatsMenu(private val plugin: PluginManager) : Listener {
 
-    private class MenuHolder : InventoryHolder {
-        lateinit var backing: Inventory
-        override fun getInventory(): Inventory = backing
+    private class MenuHolder : MenuSupport.BackedHolder {
+        override lateinit var backing: Inventory
     }
 
     fun open(player: Player) {
         val size = plugin.configuration.menuSize
         val holder = MenuHolder()
         val title = plugin.messages.component("stats-menu-title", "player" to player.name)
-        val inventory = plugin.server.createInventory(holder, size, title)
-        holder.backing = inventory
-        MenuSupport.decorate(plugin, inventory, size)
+        val inventory = MenuSupport.createPage(plugin, holder, size, title, 1, 1)
 
         val uuid = player.uniqueId
         val stats = plugin.stats

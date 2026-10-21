@@ -28,6 +28,7 @@ class NexoHook(private val plugin: PluginManager) : NexoItemSource, Listener {
         runCatching { NexoItems.itemNames().isNotEmpty() }.getOrDefault(false)
 
     @EventHandler
+    @Suppress("UNUSED_PARAMETER")
     fun onItemsLoaded(event: NexoItemsLoadedEvent) {
         plugin.itemLoader.validateNexo()
     }

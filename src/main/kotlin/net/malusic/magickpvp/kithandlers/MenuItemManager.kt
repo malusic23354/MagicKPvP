@@ -39,12 +39,12 @@ class MenuItemManager(private val plugin: PluginManager) : Listener {
 
     fun isMenuItem(stack: ItemStack?): Boolean {
         if (stack == null || stack.type.isAir || !stack.hasItemMeta()) return false
-        return stack.itemMeta.persistentDataContainer.has(key, PersistentDataType.BYTE)
+        return stack.persistentDataContainer.has(key, PersistentDataType.BYTE)
     }
 
     private fun typeOf(stack: ItemStack?): MenuItemType? {
         if (!isMenuItem(stack)) return null
-        val id = stack!!.itemMeta.persistentDataContainer.get(typeKey, PersistentDataType.STRING)
+        val id = stack!!.persistentDataContainer.get(typeKey, PersistentDataType.STRING)
         return MenuItemType.entries.firstOrNull { it.id == id } ?: MenuItemType.KITS
     }
 

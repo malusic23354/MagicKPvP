@@ -116,7 +116,6 @@ class CombatLogPunishment(private val plugin: PluginManager) : Listener {
                 val amount = minOf(settings.amount, plugin.economy.balance(player))
                 if (amount > 0.0) plugin.economy.withdraw(player, amount)
             }
-            CombatLogMode.OFF -> {}
         }
     }
 

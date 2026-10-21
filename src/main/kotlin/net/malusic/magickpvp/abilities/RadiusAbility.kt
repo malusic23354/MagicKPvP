@@ -74,7 +74,8 @@ class RadiusAbility(
         val center = holder.boundingBox.center
         val nowInside = HashSet<UUID>()
 
-        for (other in holder.world.players) {
+        val reachY = if (ability.shape == AbilityShape.CIRCULAR) CIRCLE_HEIGHT else ability.width
+        for (other in holder.world.getNearbyPlayers(center.toLocation(holder.world), ability.width, reachY, ability.width)) {
             if (other.uniqueId == holder.uniqueId || other.isDead || other.gameMode == GameMode.SPECTATOR) continue
             if (!plugin.combat.abilitiesAllowed(other)) continue
             if (!isInside(ability, center, other.boundingBox.center)) continue

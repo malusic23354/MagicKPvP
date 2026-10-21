@@ -19,9 +19,9 @@ import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.EquipmentSlot
+import org.bukkit.inventory.ItemStack
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import org.bukkit.persistence.PersistentDataType
-import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -121,6 +121,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
     }
 
     private fun startCooldown(player: Player, itemId: String, custom: CustomItem) {
+        if (custom.abilities.any { registry.get(it.type)?.freeActivation(player) == true }) return
         lastUsed[player.uniqueId] = itemId
         plugin.advancements.abilityUsed(player, itemId, custom)
         if (custom.cooldownTicks <= 0L) return
@@ -205,7 +206,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         val uuid = player.uniqueId
         val active = cooldowns[uuid]
         val trail = cooling[uuid]
-        if ((active == null || active.isEmpty()) && (trail == null || trail.isEmpty())) return
+        if (active.isNullOrEmpty() && trail.isNullOrEmpty()) return
 
         when (display.mode) {
             CooldownDisplayMode.HELD -> showHeld(player, display)
@@ -223,7 +224,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         }
 
         val trail = cooling.getOrPut(uuid) { HashSet() }
-        trail.retainAll(setOf(itemId))
+        if (trail.size > 1 || (trail.size == 1 && itemId !in trail)) trail.retainAll(setOf(itemId))
 
         val left = cooldownLeft(uuid, itemId)
         val name = plugin.messages.plain(custom.name)
@@ -261,26 +262,28 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
     }
 
     private fun formatTime(millis: Long): String =
-        if (millis < 10_000L) String.format(Locale.US, "%.1f", millis / 1000.0)
-        else ((millis + 999L) / 1000L).toString()
+        if (millis < 10_000L) {
+            val tenths = (millis + 50L) / 100L
+            "${tenths / 10L}.${tenths % 10L}"
+        } else ((millis + 999L) / 1000L).toString()
 
     private fun applyPassive(player: Player) {
-        val equipped = sequenceOf(
-            player.inventory.itemInMainHand,
-            player.inventory.itemInOffHand
-        ).plus(
-            player.inventory.armorContents.asSequence().filterNotNull()
-        )
+        val inventory = player.inventory
+        val seen = HashSet<String>(4)
+        applyPassive(player, inventory.itemInMainHand, seen)
+        applyPassive(player, inventory.itemInOffHand, seen)
+        applyPassive(player, inventory.helmet, seen)
+        applyPassive(player, inventory.chestplate, seen)
+        applyPassive(player, inventory.leggings, seen)
+        applyPassive(player, inventory.boots, seen)
+    }
 
-        val itemIds = equipped
-            .mapNotNull { plugin.itemLoader.itemId(it) }
-            .distinct()
-
-        for (itemId in itemIds) {
-            val custom = plugin.itemLoader.piece(itemId) ?: continue
-            for (ability in custom.abilities) {
-                registry.get(ability.type)?.passive(player, ability)
-            }
+    private fun applyPassive(player: Player, stack: ItemStack?, seen: MutableSet<String>) {
+        val itemId = plugin.itemLoader.itemId(stack) ?: return
+        if (!seen.add(itemId)) return
+        val custom = plugin.itemLoader.piece(itemId) ?: return
+        for (ability in custom.abilities) {
+            registry.get(ability.type)?.passive(player, ability)
         }
     }
 

@@ -2,6 +2,8 @@ package net.malusic.magickpvp
 
 import io.papermc.paper.datacomponent.DataComponentTypes
 import io.papermc.paper.datacomponent.item.TooltipDisplay
+import io.papermc.paper.registry.RegistryAccess
+import io.papermc.paper.registry.RegistryKey
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.Particle
@@ -113,7 +115,7 @@ class ItemLoader(private val plugin: PluginManager) {
 
     fun itemId(stack: ItemStack?): String? {
         if (stack == null || stack.type.isAir || !stack.hasItemMeta()) return null
-        return stack.itemMeta.persistentDataContainer.get(itemKey, PersistentDataType.STRING)
+        return stack.persistentDataContainer.get(itemKey, PersistentDataType.STRING)
     }
 
     fun load() {
@@ -282,7 +284,7 @@ class ItemLoader(private val plugin: PluginManager) {
         val enchantLines = s.getStringList("enchantments").ifEmpty { s.getStringList("enchantements") }
         for (line in enchantLines) {
             val parts = line.split(':')
-            val enchant = mcKey(parts[0])?.let { Registry.ENCHANTMENT.get(it) }
+            val enchant = mcKey(parts[0])?.let { RegistryAccess.registryAccess().getRegistry(RegistryKey.ENCHANTMENT).get(it) }
             if (enchant == null) {
                 plugin.componentLogger.warn("Item '$id' has an unknown enchantment '$line'.")
                 continue
@@ -315,7 +317,7 @@ class ItemLoader(private val plugin: PluginManager) {
             val operation = map["operation"]?.toString()
                 ?.let { runCatching { AttributeModifier.Operation.valueOf(it.trim().uppercase()) }.getOrNull() }
                 ?: AttributeModifier.Operation.ADD_NUMBER
-            val slot = map["slot"]?.toString()?.let { EquipmentSlotGroup.getByName(it.trim().lowercase()) }
+            val slot = map["slot"]?.toString()?.let { parseSlotGroup(it) }
                 ?: EquipmentSlotGroup.MAINHAND
             val amount = (map["amount"] as? Number)?.toDouble() ?: map["amount"]?.toString()?.toDoubleOrNull()
             if (attribute == null || amount == null) {
@@ -368,15 +370,19 @@ class ItemLoader(private val plugin: PluginManager) {
         )
     }
 
+    private fun warnNoDurability(itemId: String, material: Material) {
+        plugin.componentLogger.warn(
+            "Item '$itemId' has a durability tag but ${material.name} has no durability, ignoring it."
+        )
+    }
+
     private fun parseDurability(itemId: String, raw: String?, material: Material): Int? {
         val trimmed = raw?.trim().orEmpty()
         if (trimmed.isEmpty()) return null
 
         val max = material.maxDurability.toInt()
         if (max <= 0) {
-            plugin.componentLogger.warn(
-                "Item '$itemId' has a durability tag but ${material.name} has no durability, ignoring it."
-            )
+            warnNoDurability(itemId, material)
             return null
         }
 
@@ -405,9 +411,7 @@ class ItemLoader(private val plugin: PluginManager) {
         if (durability == null || meta !is Damageable) return
         val max = type.maxDurability.toInt()
         if (max <= 0) {
-            plugin.componentLogger.warn(
-                "Item '$itemId' has a durability tag but ${type.name} has no durability, ignoring it."
-            )
+            warnNoDurability(itemId, type)
             return
         }
         meta.damage = (max - durability).coerceIn(0, max)
@@ -517,6 +521,20 @@ class ItemLoader(private val plugin: PluginManager) {
             .removePrefix("player.").removePrefix("player_")
             .replace('.', '_')
         return mcKey(name)?.let { Registry.ATTRIBUTE.get(it) }
+    }
+
+    private fun parseSlotGroup(raw: String): EquipmentSlotGroup? = when (raw.trim().lowercase()) {
+        "any" -> EquipmentSlotGroup.ANY
+        "mainhand" -> EquipmentSlotGroup.MAINHAND
+        "offhand" -> EquipmentSlotGroup.OFFHAND
+        "hand" -> EquipmentSlotGroup.HAND
+        "feet" -> EquipmentSlotGroup.FEET
+        "legs" -> EquipmentSlotGroup.LEGS
+        "chest" -> EquipmentSlotGroup.CHEST
+        "head" -> EquipmentSlotGroup.HEAD
+        "armor" -> EquipmentSlotGroup.ARMOR
+        "body" -> EquipmentSlotGroup.BODY
+        else -> null
     }
 
     private fun mcKey(raw: String): NamespacedKey? =

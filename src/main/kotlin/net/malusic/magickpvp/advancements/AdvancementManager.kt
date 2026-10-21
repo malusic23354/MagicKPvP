@@ -39,8 +39,8 @@ class AdvancementManager(private val plugin: PluginManager) : Listener {
         }
     }
 
-    private fun reach(player: Player, type: AdvancementType, value: Long) {
-        for (definition in matching(type, emptySet())) {
+    private fun reach(player: Player, value: Long) {
+        for (definition in matching(AdvancementType.KILLSTREAK, emptySet())) {
             update(player, definition) { maxOf(it, value) }
         }
     }
@@ -99,7 +99,7 @@ class AdvancementManager(private val plugin: PluginManager) : Listener {
 
         val killer = victim.killer?.takeIf { it.uniqueId != victim.uniqueId } ?: return
         add(killer, AdvancementType.KILLS)
-        reach(killer, AdvancementType.KILLSTREAK, plugin.stats.streak(killer.uniqueId))
+        reach(killer, plugin.stats.streak(killer.uniqueId))
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
