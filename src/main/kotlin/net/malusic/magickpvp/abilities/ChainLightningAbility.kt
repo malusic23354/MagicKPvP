@@ -104,7 +104,7 @@ class ChainLightningAbility(private val plugin: PluginManager) : AbilityBehavior
             .filter { !settings.lineOfSight || clear(point, it.boundingBox.center.toLocation(it.world)) }
             .minByOrNull { it.location.distanceSquared(target.location) } ?: return
 
-        plugin.server.scheduler.runTaskLater(plugin, Runnable {
+        plugin.server.globalRegionScheduler.runDelayed(plugin, {
             strike(owner, next, point, step + 1, settings, hit)
         }, settings.hopDelay)
     }

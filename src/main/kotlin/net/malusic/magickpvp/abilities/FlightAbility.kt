@@ -1,14 +1,14 @@
 package net.malusic.magickpvp
 
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import org.bukkit.entity.Player
-import org.bukkit.scheduler.BukkitTask
 import java.util.UUID
 
 class FlightAbility(private val plugin: PluginManager) : AbilityBehavior {
 
     override val key = "flight"
 
-    private val tasks = HashMap<UUID, BukkitTask>()
+    private val tasks = HashMap<UUID, ScheduledTask>()
 
     private val original = HashMap<UUID, Pair<Boolean, Boolean>>()
 
@@ -49,14 +49,14 @@ class FlightAbility(private val plugin: PluginManager) : AbilityBehavior {
 
         var remainingTicks = durationTicks
         var lastAnnouncedSecond = -1L
-        var timer: BukkitTask? = null
+        var timer: ScheduledTask? = null
 
-        timer = plugin.server.scheduler.runTaskTimer(plugin, Runnable {
+        timer = plugin.server.globalRegionScheduler.runAtFixedRate(plugin, {
             if (!player.isOnline) {
                 tasks.remove(uuid)
                 original.remove(uuid)
                 timer?.cancel()
-                return@Runnable
+                return@runAtFixedRate
             }
 
             if (!player.allowFlight) {

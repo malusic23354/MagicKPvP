@@ -11,8 +11,8 @@ import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerJoinEvent
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import org.bukkit.event.player.PlayerRespawnEvent
-import org.bukkit.scheduler.BukkitTask
 
 class SpawnManager(private val plugin: PluginManager) : Listener {
 
@@ -132,7 +132,7 @@ class SpawnManager(private val plugin: PluginManager) : Listener {
 
 class SpawnCountdown(private val plugin: PluginManager) {
 
-    private val pending = HashMap<UUID, BukkitTask>()
+    private val pending = HashMap<UUID, ScheduledTask>()
 
     fun isPending(player: Player): Boolean = pending.containsKey(player.uniqueId)
 
@@ -145,27 +145,27 @@ class SpawnCountdown(private val plugin: PluginManager) {
         plugin.messages.send(player, "spawn-countdown", "time" to seconds.toString())
         showBar(player, seconds)
 
-        pending[uuid] = plugin.server.scheduler.runTaskTimer(plugin, Runnable {
+        pending[uuid] = plugin.server.globalRegionScheduler.runAtFixedRate(plugin, {
             if (!player.isOnline || player.isDead) {
                 stop(uuid)
-                return@Runnable
+                return@runAtFixedRate
             }
             if (cancelOnMove && (player.world != origin.world || player.location.distanceSquared(origin) > 0.25)) {
                 stop(uuid)
                 plugin.messages.send(player, "spawn-cancelled")
-                return@Runnable
+                return@runAtFixedRate
             }
             if (plugin.combat.blocksKitSwitch(player)) {
                 stop(uuid)
                 plugin.messages.send(player, "spawn-in-combat", "time" to plugin.combat.remainingSeconds(player).toString())
-                return@Runnable
+                return@runAtFixedRate
             }
 
             elapsed += STEP
             if (elapsed >= total) {
                 stop(uuid)
                 onFinish()
-                return@Runnable
+                return@runAtFixedRate
             }
             if (elapsed % 20 == 0) showBar(player, (total - elapsed + 19) / 20)
         }, STEP.toLong(), STEP.toLong())

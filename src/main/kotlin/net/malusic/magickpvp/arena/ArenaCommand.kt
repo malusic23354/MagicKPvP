@@ -1,7 +1,6 @@
 package net.malusic.magickpvp
 
 import org.bukkit.Material
-import org.bukkit.command.CommandSender
 import org.bukkit.entity.Player
 
 class ArenaCommand(private val plugin: PluginManager) {
@@ -15,51 +14,18 @@ class ArenaCommand(private val plugin: PluginManager) {
         val name: String?
     )
 
-    private val actions = listOf("set", "add", "remove")
+    fun removeSpot(sender: org.bukkit.command.CommandSender, name: String) {
+        val key = if (plugin.arena.remove(name)) "arena-removed" else "arena-unknown"
+        plugin.messages.send(sender, key, "spot" to name)
+    }
 
-    fun handle(sender: CommandSender, args: Array<out String>) {
+    /**
+     * Adds or updates an arena spot. [options] holds the optional tokens after the spot name:
+     * `[x y z] [yaw pitch] [material] [slot] [glow] [display name]`, mirroring the old argument parsing.
+     */
+    fun setOrAdd(player: Player, action: String, name: String, options: List<String>) {
         val messages = plugin.messages
-        val action = args.getOrNull(1)?.lowercase()
-
-        if (action == null) {
-            val player = sender as? Player ?: run {
-                messages.send(sender, "player-only")
-                return
-            }
-            if (!plugin.combat.arenaAllowed(player)) {
-                messages.send(player, "arena-spawn-only")
-                return
-            }
-            plugin.arena.join(player)
-            return
-        }
-
-        if (action !in actions) {
-            messages.send(sender, "arena-usage")
-            return
-        }
-        if (!sender.hasPermission("magickpvp.arena.admin")) {
-            messages.send(sender, "no-permission")
-            return
-        }
-
-        val name = args.getOrNull(2)
-        if (name == null) {
-            messages.send(sender, "arena-usage")
-            return
-        }
-
-        if (action == "remove") {
-            val key = if (plugin.arena.remove(name)) "arena-removed" else "arena-unknown"
-            messages.send(sender, key, "spot" to name)
-            return
-        }
-
-        val player = sender as? Player ?: run {
-            messages.send(sender, "player-only")
-            return
-        }
-        val parsed = parse(args.drop(3)) ?: run {
+        val parsed = parse(options) ?: run {
             messages.send(player, "arena-usage")
             return
         }
@@ -114,31 +80,6 @@ class ArenaCommand(private val plugin: PluginManager) {
 
         plugin.arena.put(spot)
         messages.send(player, if (existing == null) "arena-added" else "arena-updated", "spot" to spot.id)
-    }
-
-    fun complete(sender: CommandSender, args: Array<out String>): List<String> {
-        if (!sender.hasPermission("magickpvp.arena.admin")) return emptyList()
-        if (args.size == 2) return actions.filter { it.startsWith(args[1], ignoreCase = true) }
-
-        val action = args[1].lowercase()
-        if (args.size == 3) {
-            return if (action == "set" || action == "remove") {
-                plugin.arena.ids.filter { it.startsWith(args[2], ignoreCase = true) }
-            } else {
-                emptyList()
-            }
-        }
-
-        if ((action != "set" && action != "add") || sender !is Player) return emptyList()
-        val location = sender.location
-        return when (args.size) {
-            4 -> listOf(location.blockX.toString())
-            5 -> listOf(location.blockY.toString())
-            6 -> listOf(location.blockZ.toString())
-            7 -> listOf(location.yaw.toInt().toString())
-            8 -> listOf(location.pitch.toInt().toString())
-            else -> emptyList()
-        }
     }
 
     private fun parse(tokens: List<String>): Parsed? {

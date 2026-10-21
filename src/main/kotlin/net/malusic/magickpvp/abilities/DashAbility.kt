@@ -7,15 +7,15 @@ import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import org.bukkit.event.entity.EntityDamageEvent
-import org.bukkit.scheduler.BukkitTask
 import java.util.UUID
 
 class DashAbility(private val plugin: PluginManager) : AbilityBehavior, Listener {
 
     override val key = "dash"
 
-    private class Dash(val task: BukkitTask, val invulnerable: Boolean)
+    private class Dash(val task: ScheduledTask, val invulnerable: Boolean)
 
     private val dashes = HashMap<UUID, Dash>()
 
@@ -56,11 +56,11 @@ class DashAbility(private val plugin: PluginManager) : AbilityBehavior, Listener
         val ownerId = owner.uniqueId
         var age = 0L
 
-        val task = plugin.server.scheduler.runTaskTimer(plugin, Runnable {
+        val task = plugin.server.globalRegionScheduler.runAtFixedRate(plugin, {
             val player = plugin.server.getPlayer(ownerId)
             if (player == null || !player.isOnline || player.isDead || age >= duration) {
                 dashes.remove(ownerId)?.task?.cancel()
-                return@Runnable
+                return@runAtFixedRate
             }
             age++
 
@@ -70,7 +70,7 @@ class DashAbility(private val plugin: PluginManager) : AbilityBehavior, Listener
                 )
             }
 
-            if (hitDamage <= 0.0 && knockback <= 0.0 && hitEffects.isEmpty()) return@Runnable
+            if (hitDamage <= 0.0 && knockback <= 0.0 && hitEffects.isEmpty()) return@runAtFixedRate
 
             for (entity in player.world.getNearbyLivingEntities(player.location.add(0.0, 0.8, 0.0), hitRadius)) {
                 if (entity.uniqueId == ownerId || entity.uniqueId in hits || entity.isDead) continue

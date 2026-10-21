@@ -46,7 +46,7 @@ internal object MenuSupport {
     }
 
     fun later(plugin: PluginManager, action: () -> Unit) {
-        plugin.server.scheduler.runTask(plugin, Runnable { action() })
+        plugin.server.globalRegionScheduler.run(plugin) { action() }
     }
 }
 

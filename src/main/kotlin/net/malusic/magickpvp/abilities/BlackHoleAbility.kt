@@ -4,8 +4,8 @@ import org.bukkit.GameMode
 import org.bukkit.Location
 import org.bukkit.Particle
 import org.bukkit.entity.LivingEntity
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import org.bukkit.entity.Player
-import org.bukkit.scheduler.BukkitTask
 import org.bukkit.util.Vector
 import java.util.UUID
 import kotlin.math.cos
@@ -16,7 +16,7 @@ class BlackHoleAbility(private val plugin: PluginManager) : AbilityBehavior {
     override val key = "blackhole"
     override val aliases = setOf("black_hole")
 
-    private class Hole(val owner: UUID, val task: BukkitTask)
+    private class Hole(val owner: UUID, val task: ScheduledTask)
 
     private val holes = ArrayList<Hole>()
 
@@ -48,13 +48,13 @@ class BlackHoleAbility(private val plugin: PluginManager) : AbilityBehavior {
 
         var age = 0L
         lateinit var hole: Hole
-        val task = plugin.server.scheduler.runTaskTimer(plugin, Runnable {
+        val task = plugin.server.globalRegionScheduler.runAtFixedRate(plugin, {
             val world = center.world
             if (age >= duration) {
                 finish(center, radius, burst, ownerId, affectOwner, mobs)
                 holes.remove(hole)
                 hole.task.cancel()
-                return@Runnable
+                return@runAtFixedRate
             }
 
             val spin = age * 0.5

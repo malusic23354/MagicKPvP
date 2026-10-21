@@ -1,13 +1,14 @@
 package net.malusic.magickpvp
 
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
 import org.bukkit.event.entity.PlayerDeathEvent
-import org.bukkit.scheduler.BukkitTask
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.TimeUnit
 import java.util.logging.Level
 
 class StatsManager(private val plugin: PluginManager) : Listener {
@@ -21,7 +22,7 @@ class StatsManager(private val plugin: PluginManager) : Listener {
     @Volatile
     private var boards: Map<String, List<Entry>> = emptyMap()
 
-    private var task: BukkitTask? = null
+    private var task: ScheduledTask? = null
 
     fun cache(uuid: UUID, data: StatsData) {
         players[uuid] = Stats(data.kills, data.deaths, data.bestStreak, data.streak)
@@ -49,7 +50,13 @@ class StatsManager(private val plugin: PluginManager) : Listener {
     fun start() {
         task?.cancel()
         val period = plugin.configuration.statsSettings.refreshSeconds * 20L
-        task = plugin.server.scheduler.runTaskTimerAsynchronously(plugin, Runnable { refresh() }, 20L, period)
+        task = plugin.server.asyncScheduler.runAtFixedRate(
+            plugin,
+            { refresh() },
+            20L,
+            period * 50L,
+            TimeUnit.MILLISECONDS
+        )
     }
 
     fun stop() {

@@ -67,8 +67,21 @@ class PlaceholderHook(private val plugin: PluginManager) : PlaceholderExpansion(
     }
 
     companion object {
-        fun install(plugin: PluginManager) {
-            PlaceholderHook(plugin).register()
+        const val IDENTIFIER = "magickpvp"
+
+        fun install(plugin: PluginManager): Boolean {
+            val expansion = PlaceholderHook(plugin)
+            val registered = expansion.register()
+            if (registered) {
+                plugin.logger.info("Registered PlaceholderAPI expansion '$IDENTIFIER'.")
+            } else {
+                plugin.logger.warning(
+                    "PlaceholderAPI expansion '$IDENTIFIER' did not register: an expansion with that " +
+                        "identifier is already present, or the ExpansionRegisterEvent was cancelled. " +
+                        "Run /papi list to check, then restart the server."
+                )
+            }
+            return registered
         }
     }
 }

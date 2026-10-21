@@ -1,5 +1,6 @@
 package net.malusic.magickpvp
 
+import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
 import org.bukkit.plugin.java.JavaPlugin
 import java.util.logging.Level
 
@@ -146,19 +147,35 @@ class PluginManager : JavaPlugin() {
         server.pluginManager.registerEvents(arenaMenu, this)
         abilities.start()
 
-        getCommand("magickpvp")?.let {
-            val handler = MagickPvpCommand(this)
-            it.setExecutor(handler)
-            it.tabCompleter = handler
+        val magickPvpCommand = MagickPvpCommand(this)
+        lifecycleManager.registerEventHandler(LifecycleEvents.COMMANDS) { event ->
+            val registrar = event.registrar()
+            registrar.register(
+                magickPvpCommand.buildMain(),
+                "Main MagicKPvP command.",
+                listOf("mkp")
+            )
+            // Registered as a main label (not an alias) so Paper overrides any
+            // other plugin's /spawn instead of deferring to it.
+            registrar.register(
+                magickPvpCommand.buildSpawn(),
+                "Teleport to spawn and reset your kit."
+            )
         }
-        getCommand("spawn")?.setExecutor(SpawnCommand(this))
 
         if (server.pluginManager.isPluginEnabled("PlaceholderAPI")) {
             try {
                 PlaceholderHook.install(this)
             } catch (failure: Throwable) {
-                logger.log(Level.WARNING, "Could not register the PlaceholderAPI expansion: ${failure.message}", failure)
+                logger.log(
+                    Level.WARNING,
+                    "Could not register the PlaceholderAPI expansion (is PlaceholderAPI's API visible " +
+                        "to this Paper plugin?): ${failure.message}",
+                    failure
+                )
             }
+        } else {
+            logger.info("PlaceholderAPI is not enabled, skipping expansion registration.")
         }
 
         if (!economy.available) {

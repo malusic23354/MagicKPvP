@@ -103,9 +103,9 @@ class MenuItemManager(private val plugin: PluginManager) : Listener {
     @EventHandler
     fun onRespawn(event: PlayerRespawnEvent) {
         val player = event.player
-        plugin.server.scheduler.runTask(plugin, Runnable {
+        plugin.server.globalRegionScheduler.run(plugin) {
             if (player.isOnline && !player.isDead) give(player)
-        })
+        }
     }
 
     @EventHandler

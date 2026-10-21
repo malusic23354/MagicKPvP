@@ -19,8 +19,8 @@ import org.bukkit.event.player.PlayerInteractEntityEvent
 import org.bukkit.event.player.PlayerInteractEvent
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.inventory.EquipmentSlot
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import org.bukkit.persistence.PersistentDataType
-import org.bukkit.scheduler.BukkitTask
 import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -36,7 +36,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
     private val lastUsed = ConcurrentHashMap<UUID, String>()
     private val notices = HashMap<Pair<UUID, String>, Long>()
     private val entityClicks = HashMap<Pair<UUID, UUID>, Long>()
-    private var task: BukkitTask? = null
+    private var task: ScheduledTask? = null
 
     init {
         registry.register(PotionEffectAbility())
@@ -59,7 +59,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
     fun start() {
         task?.cancel()
-        task = plugin.server.scheduler.runTaskTimer(plugin, Runnable { tick() }, 0L, ABILITY_TICK_INTERVAL)
+        task = plugin.server.globalRegionScheduler.runAtFixedRate(plugin, { tick() }, 1L, ABILITY_TICK_INTERVAL)
     }
 
     fun stop() {

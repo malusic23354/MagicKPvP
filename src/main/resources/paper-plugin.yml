@@ -1,27 +1,28 @@
 name: MagicKPvP
-version: '1.2.0'
+version: '1.2.1'
 main: net.malusic.magickpvp.PluginManager
+loader: net.malusic.magickpvp.loader.MagicKPvPPluginLoader
 api-version: '1.21.11'
 description: MagicKPvP is a plugin for kitpvp servers with custom kits and cool abilities.
-author: Malusic
-depend: [Vault]
-softdepend: [WorldGuard, LuckPerms, PlaceholderAPI, Nexo]
-libraries:
-  - org.jetbrains.kotlin:kotlin-stdlib:2.2.20
-  - com.zaxxer:HikariCP:6.3.0
-  - org.xerial:sqlite-jdbc:3.51.3.0
-  - com.mysql:mysql-connector-j:9.7.0
-
-commands:
-  magickpvp:
-    description: Main MagicKPvP command.
-    usage: /<command> <menu|reload|select|buy|sell|info|xp|stats|top|kitusage|advancements|spawn|setspawn|arena>
-    aliases: [mkp]
-    permission: magickpvp.command
-  spawn:
-    description: Teleport to spawn and reset your kit.
-    usage: /<command>
-    permission: magickpvp.spawn
+authors:
+  - Malusic
+dependencies:
+  server:
+    Vault:
+      load: BEFORE
+      required: true
+    WorldGuard:
+      load: BEFORE
+      required: false
+    LuckPerms:
+      load: BEFORE
+      required: false
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+    Nexo:
+      load: BEFORE
+      required: false
 
 permissions:
   magickpvp.command:

@@ -114,10 +114,10 @@ class NonKitItemPrevention(private val plugin: PluginManager) : Listener {
 
         event.isCancelled = true
         val slot = event.slot
-        plugin.server.scheduler.runTask(plugin, Runnable {
+        plugin.server.globalRegionScheduler.run(plugin) {
             player.inventory.setItem(slot, null)
             player.updateInventory()
-        })
+        }
         plugin.messages.send(player, "non-kit-item-removed")
     }
 

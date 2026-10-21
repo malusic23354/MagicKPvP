@@ -11,9 +11,9 @@ import org.bukkit.event.Listener
 import org.bukkit.event.entity.EntityDamageByEntityEvent
 import org.bukkit.event.entity.EntityDamageEvent
 import org.bukkit.event.entity.PlayerDeathEvent
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import org.bukkit.event.world.EntitiesLoadEvent
 import org.bukkit.potion.PotionEffectType
-import org.bukkit.scheduler.BukkitTask
 import org.bukkit.util.Vector
 import java.util.UUID
 import java.util.concurrent.ThreadLocalRandom
@@ -45,7 +45,7 @@ internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior
     private val temp = TempEntities(plugin, "decoy")
     private val byOwner = HashMap<UUID, ArrayList<Decoy>>()
     private val byNpc = HashMap<UUID, Decoy>()
-    private var mover: BukkitTask? = null
+    private var mover: ScheduledTask? = null
 
     override fun activate(context: AbilityContext, ability: Ability, index: Int): Boolean {
         val owner = context.player
@@ -127,7 +127,7 @@ internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior
 
     private fun startMover() {
         if (mover != null) return
-        mover = plugin.server.scheduler.runTaskTimer(plugin, Runnable { move() }, 1L, 1L)
+        mover = plugin.server.globalRegionScheduler.runAtFixedRate(plugin, { move() }, 1L, 1L)
     }
 
     private fun move() {
