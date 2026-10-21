@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "net.malusic"
-version = "1.1.9"
+version = "1.2.0"
 
 repositories {
     mavenCentral()
@@ -13,6 +13,7 @@ repositories {
     maven("https://jitpack.io")
     maven("https://maven.enginehub.org/repo/")
     maven("https://repo.extendedclip.com/releases/")
+    maven("https://repo.nexomc.com/releases")
 }
 
 dependencies {
@@ -22,6 +23,7 @@ dependencies {
     compileOnly("net.luckperms:api:5.4")
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.9")
     compileOnly("me.clip:placeholderapi:2.11.6")
+    compileOnly("com.nexomc:nexo:1.29.1")
 }
 
 tasks {

@@ -16,8 +16,11 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.potion.PotionEffectType
 import org.bukkit.potion.PotionEffect
+import org.bukkit.inventory.meta.Damageable
+import org.bukkit.inventory.meta.ItemMeta
 import org.bukkit.inventory.meta.PotionMeta
 import java.io.File
+import kotlin.math.roundToInt
 
 enum class AbilityShape { CIRCULAR, BOX, SPHERE }
 enum class MessageReceiver { TARGET, INFLICTOR }
@@ -61,12 +64,14 @@ data class CustomItem(
     val amount: Int,
     val glow: Boolean,
     val unbreakable: Boolean,
+    val durability: Int?,
     val attributes: List<AttributeSpec>,
     val enchantments: Map<Enchantment, Int>,
     val lore: List<String>,
     val cooldownTicks: Long,
     val abilities: List<Ability>,
-    val potion: PotionSpec?
+    val potion: PotionSpec?,
+    val nexoId: String? = null
 )
 
 data class KitRequirement(val xp: Long, val kills: Long)
@@ -89,6 +94,9 @@ class ItemLoader(private val plugin: PluginManager) {
     private val itemKey = NamespacedKey(plugin, "item_id")
     private var kits: Map<String, CustomKit> = emptyMap()
     private var piecesById: Map<String, CustomItem> = emptyMap()
+    private val warnedNexo = HashSet<String>()
+
+    var nexoItemSource: NexoItemSource? = null
 
     val ids: Set<String> get() = kits.keys
 
@@ -134,13 +142,48 @@ class ItemLoader(private val plugin: PluginManager) {
         }
         kits = loaded
         piecesById = allPieces
+        warnedNexo.clear()
         plugin.logger.info("Loaded ${kits.size} kit(s) containing ${piecesById.size} item(s) from items.yml.")
+        validateNexo()
+    }
+
+    fun validateNexo() {
+        val source = nexoItemSource ?: return
+        if (!source.loaded()) return
+        for (piece in piecesById.values) {
+            val nexoId = piece.nexoId ?: continue
+            if (!source.exists(nexoId)) {
+                plugin.logger.warning(
+                    "Item '${piece.id}' references Nexo item '$nexoId' which does not exist, it will use its material instead."
+                )
+            }
+        }
     }
 
     fun build(kit: CustomKit, tagged: Boolean = true): List<ItemStack> = kit.pieces.values.map { build(it, tagged) }
 
+    private fun baseStack(custom: CustomItem): ItemStack {
+        val nexoId = custom.nexoId
+        if (nexoId != null) {
+            val built = nexoItemSource?.build(nexoId)
+            if (built != null) {
+                built.amount = custom.amount.coerceIn(1, built.type.maxStackSize)
+                return built
+            }
+            if (nexoId !in warnedNexo) {
+                warnedNexo += nexoId
+                plugin.logger.warning(
+                    "Item '${custom.id}' uses Nexo item '$nexoId' which could not be built" +
+                        (if (nexoItemSource == null) " (Nexo is not installed)" else "") +
+                        ", falling back to ${custom.material}."
+                )
+            }
+        }
+        return ItemStack(custom.material, custom.amount.coerceIn(1, custom.material.maxStackSize))
+    }
+
     fun build(custom: CustomItem, tagged: Boolean = true): ItemStack {
-        val stack = ItemStack(custom.material, custom.amount.coerceIn(1, custom.material.maxStackSize))
+        val stack = baseStack(custom)
         val meta = stack.itemMeta
         val messages = plugin.messages
 
@@ -150,11 +193,12 @@ class ItemLoader(private val plugin: PluginManager) {
 
         if (custom.glow) meta.setEnchantmentGlintOverride(true)
         if (custom.unbreakable) meta.isUnbreakable = true
+        applyDurability(meta, stack.type, custom.durability, custom.id)
         for ((enchant, level) in custom.enchantments) meta.addEnchant(enchant, level, true)
 
         if (custom.attributes.isNotEmpty()) {
             for (slot in EquipmentSlot.entries) {
-                val defaults = runCatching { custom.material.asItemType()?.getDefaultAttributeModifiers(slot) }.getOrNull()
+                val defaults = runCatching { stack.type.asItemType()?.getDefaultAttributeModifiers(slot) }.getOrNull()
                     ?: continue
                 for (entry in defaults.entries()) {
                     meta.addAttributeModifier(entry.key, entry.value)
@@ -306,12 +350,59 @@ class ItemLoader(private val plugin: PluginManager) {
             amount = s.getInt("amount", 1),
             glow = s.getBoolean("glow", false),
             unbreakable = s.getBoolean("unbreakable", false),
+            durability = parseDurability(id, s.getString("durability"), material),
             attributes = attributes,
             enchantments = enchantments,
             lore = s.getStringList("lore"),
             cooldownTicks = parseTicks(s.getString("cooldown"), 0L),
-            abilities = abilities
+            abilities = abilities,
+            nexoId = s.getString("nexo")?.trim()?.takeIf { it.isNotEmpty() }
         )
+    }
+
+    private fun parseDurability(itemId: String, raw: String?, material: Material): Int? {
+        val trimmed = raw?.trim().orEmpty()
+        if (trimmed.isEmpty()) return null
+
+        val max = material.maxDurability.toInt()
+        if (max <= 0) {
+            plugin.logger.warning(
+                "Item '$itemId' has a durability tag but ${material.name} has no durability, ignoring it."
+            )
+            return null
+        }
+
+        val value = if (trimmed.endsWith("%")) {
+            trimmed.dropLast(1).trim().toDoubleOrNull()
+                ?.let { percent -> (max * percent.coerceIn(0.0, 100.0) / 100.0).roundToInt() }
+        } else {
+            trimmed.toIntOrNull()
+        }
+
+        if (value == null) {
+            plugin.logger.warning(
+                "Item '$itemId' has an invalid durability '$raw' (expected points or a percentage like '50%')."
+            )
+            return null
+        }
+        if (value !in 1..max) {
+            plugin.logger.warning(
+                "Item '$itemId' durability $value is outside 1..$max for ${material.name}, clamping it."
+            )
+        }
+        return value.coerceIn(1, max)
+    }
+
+    private fun applyDurability(meta: ItemMeta, type: Material, durability: Int?, itemId: String) {
+        if (durability == null || meta !is Damageable) return
+        val max = type.maxDurability.toInt()
+        if (max <= 0) {
+            plugin.logger.warning(
+                "Item '$itemId' has a durability tag but ${type.name} has no durability, ignoring it."
+            )
+            return
+        }
+        meta.damage = (max - durability).coerceIn(0, max)
     }
 
     private fun parseAbility(itemId: String, s: ConfigurationSection): Ability? {

@@ -1,6 +1,12 @@
 # Any item below can also carry "unbreakable: true" (alongside name/material/lore etc.)
 # to make it take no durability damage at all, e.g.:
 #   unbreakable: true
+# Items with durability can also start at a specific amount of it:
+#   durability: 120   (durability points left)
+#   durability: 50%   (percentage of the material's max durability left)
+# With the Nexo plugin installed, an item can also use a Nexo item for a custom texture:
+#   nexo: <nexo_item_id>
+# (material is still used as fallback and decides behavior such as ranged abilities)
 pyromancer:
   name: "<gold>Pyromancer"
   price:
@@ -180,6 +186,7 @@ shadow:
     abilities:
       clone:
         type: decoy
+        amount: 1
         lifetime: 8s
         health: 6
         show-name: true

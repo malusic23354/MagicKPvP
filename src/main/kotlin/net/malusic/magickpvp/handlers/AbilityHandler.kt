@@ -4,7 +4,9 @@ import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.JoinConfiguration
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
+import com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent
 import org.bukkit.entity.Player
+import org.bukkit.entity.Projectile
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
 import org.bukkit.event.Listener
@@ -284,8 +286,16 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
     @EventHandler
     fun onLaunch(event: ProjectileLaunchEvent) {
-        val projectile = event.entity
-        val shooter = projectile.shooter as? Player ?: return
+        tagProjectile(event.entity, event.entity.shooter as? Player ?: return)
+    }
+
+    @EventHandler
+    fun onPlayerLaunch(event: PlayerLaunchProjectileEvent) {
+        tagProjectile(event.projectile, event.player)
+    }
+
+    private fun tagProjectile(projectile: Projectile, shooter: Player) {
+        if (projectile.persistentDataContainer.has(projectileKey, PersistentDataType.STRING)) return
 
         val held = sequenceOf(
             shooter.inventory.itemInMainHand,
@@ -315,9 +325,11 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
     @EventHandler
     fun onEggThrow(event: PlayerEggThrowEvent) {
-        if (event.egg.persistentDataContainer.has(projectileKey, PersistentDataType.STRING)) {
-            event.isHatching = false
-        }
+        val tagged = event.egg.persistentDataContainer.has(projectileKey, PersistentDataType.STRING)
+        if (tagged) event.isHatching = false
+        plugin.logger.info(
+            "[mkp-debug] egg of ${event.player.name} landed: tagged=$tagged hatching=${event.isHatching}"
+        )
     }
 
     @EventHandler

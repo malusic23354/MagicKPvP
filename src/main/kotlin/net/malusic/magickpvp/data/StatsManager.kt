@@ -24,7 +24,7 @@ class StatsManager(private val plugin: PluginManager) : Listener {
     private var task: BukkitTask? = null
 
     fun cache(uuid: UUID, data: StatsData) {
-        players[uuid] = Stats(data.kills, data.deaths, data.bestStreak)
+        players[uuid] = Stats(data.kills, data.deaths, data.bestStreak, data.streak)
     }
 
     fun uncache(uuid: UUID) {
@@ -76,7 +76,10 @@ class StatsManager(private val plugin: PluginManager) : Listener {
             stats.deaths++
             stats.streak = 0L
         }
-        plugin.data.write { it.addDeath(victimId) }
+        plugin.data.write {
+            it.addDeath(victimId)
+            it.setStreak(victimId, 0L)
+        }
 
         val killer = victim.killer?.takeIf { it.uniqueId != victimId } ?: return
         val killerId = killer.uniqueId
@@ -85,12 +88,17 @@ class StatsManager(private val plugin: PluginManager) : Listener {
         val stats = players[killerId] ?: return
         stats.kills++
         stats.streak++
-        if (stats.streak > stats.bestStreak) {
-            stats.bestStreak = stats.streak
-            val best = stats.bestStreak
-            plugin.data.write { it.setBestStreak(killerId, best) }
+        val streak = stats.streak
+        var best: Long? = null
+        if (streak > stats.bestStreak) {
+            stats.bestStreak = streak
+            best = streak
         }
-        rewardStreak(killer, stats.streak)
+        plugin.data.write {
+            it.setStreak(killerId, streak)
+            best?.let { value -> it.setBestStreak(killerId, value) }
+        }
+        rewardStreak(killer, streak)
     }
 
     private fun rewardStreak(killer: Player, streak: Long) {

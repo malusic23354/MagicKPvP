@@ -7,7 +7,7 @@ import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.util.UUID
 
-data class StatsData(val kills: Long = 0L, val deaths: Long = 0L, val bestStreak: Long = 0L)
+data class StatsData(val kills: Long = 0L, val deaths: Long = 0L, val bestStreak: Long = 0L, val streak: Long = 0L)
 
 data class PlayerData(
     val kits: Set<String>,
@@ -67,6 +67,15 @@ class SqlPlayerStorage private constructor(
                 "ON DUPLICATE KEY UPDATE best_streak = VALUES(best_streak)"
     }
 
+    private val setStreakSql = when (type) {
+        StorageType.SQLITE ->
+            "INSERT INTO $STATS (uuid, kills, deaths, best_streak, streak) VALUES (?, 0, 0, 0, ?) " +
+                "ON CONFLICT(uuid) DO UPDATE SET streak = excluded.streak"
+        StorageType.MYSQL ->
+            "INSERT INTO $STATS (uuid, kills, deaths, best_streak, streak) VALUES (?, 0, 0, 0, ?) " +
+                "ON DUPLICATE KEY UPDATE streak = VALUES(streak)"
+    }
+
     private val addKitPurchaseSql = when (type) {
         StorageType.SQLITE ->
             "INSERT INTO $USAGE (kit_id, purchases) VALUES (?, 1) " +
@@ -110,8 +119,12 @@ class SqlPlayerStorage private constructor(
         val xp = select("SELECT xp FROM $PLAYERS WHERE uuid = ?", uuid) { rows ->
             if (rows.next()) rows.getLong(1) else 0L
         }
-        val stats = select("SELECT kills, deaths, best_streak FROM $STATS WHERE uuid = ?", uuid) { rows ->
-            if (rows.next()) StatsData(rows.getLong(1), rows.getLong(2), rows.getLong(3)) else StatsData()
+        val stats = select("SELECT kills, deaths, best_streak, streak FROM $STATS WHERE uuid = ?", uuid) { rows ->
+            if (rows.next()) {
+                StatsData(rows.getLong(1), rows.getLong(2), rows.getLong(3), rows.getLong(4))
+            } else {
+                StatsData()
+            }
         }
         val advancements = select("SELECT advancement_id, progress, completed FROM $ADVANCEMENTS WHERE uuid = ?", uuid) { rows ->
             val found = HashMap<String, AdvancementProgress>()
@@ -197,6 +210,8 @@ class SqlPlayerStorage private constructor(
 
     fun setBestStreak(uuid: UUID, amount: Long) = update(setBestStreakSql, uuid.toString(), amount)
 
+    fun setStreak(uuid: UUID, amount: Long) = update(setStreakSql, uuid.toString(), amount)
+
     fun close() {
         source.close()
     }
@@ -228,7 +243,8 @@ class SqlPlayerStorage private constructor(
                 uuid VARCHAR(36) NOT NULL PRIMARY KEY,
                 kills BIGINT NOT NULL DEFAULT 0,
                 deaths BIGINT NOT NULL DEFAULT 0,
-                best_streak BIGINT NOT NULL DEFAULT 0
+                best_streak BIGINT NOT NULL DEFAULT 0,
+                streak BIGINT NOT NULL DEFAULT 0
             )
         """
 
@@ -248,6 +264,33 @@ class SqlPlayerStorage private constructor(
                 PRIMARY KEY (uuid, advancement_id)
             )
         """
+
+        private const val STREAK_COLUMN = "streak"
+
+        private fun migrateStatsStreak(connection: java.sql.Connection, type: StorageType) {
+            val exists = when (type) {
+                StorageType.SQLITE ->
+                    connection.prepareStatement("SELECT 1 FROM pragma_table_info(?) WHERE name = ?").use { statement ->
+                        statement.setString(1, STATS)
+                        statement.setString(2, STREAK_COLUMN)
+                        statement.executeQuery().use { it.next() }
+                    }
+                StorageType.MYSQL ->
+                    connection.prepareStatement(
+                        "SELECT COUNT(*) FROM information_schema.columns " +
+                            "WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?"
+                    ).use { statement ->
+                        statement.setString(1, STATS)
+                        statement.setString(2, STREAK_COLUMN)
+                        statement.executeQuery().use { rows -> rows.next() && rows.getLong(1) > 0L }
+                    }
+            }
+            if (!exists) {
+                connection.createStatement().use {
+                    it.execute("ALTER TABLE $STATS ADD COLUMN $STREAK_COLUMN BIGINT NOT NULL DEFAULT 0")
+                }
+            }
+        }
 
         fun open(plugin: PluginManager, settings: StorageSettings): SqlPlayerStorage {
             val config = HikariConfig()
@@ -284,6 +327,7 @@ class SqlPlayerStorage private constructor(
                         it.execute(CREATE_USAGE)
                         it.execute(CREATE_ADVANCEMENTS)
                     }
+                    migrateStatsStreak(connection, settings.type)
                 }
             } catch (failure: Exception) {
                 source.close()

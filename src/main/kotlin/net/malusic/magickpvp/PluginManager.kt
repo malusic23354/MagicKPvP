@@ -99,6 +99,10 @@ class PluginManager : JavaPlugin() {
         if (server.pluginManager.isPluginEnabled("WorldGuard")) {
             combat.zoneCheck = WorldGuardHook()
         }
+        NexoHook.install(this)?.let { hook ->
+            itemLoader.nexoItemSource = hook
+            logger.info("Nexo found, items can use custom Nexo textures.")
+        }
 
         reloadAll()
         if (!data.open()) {

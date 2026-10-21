@@ -37,6 +37,7 @@ MagicKPvP is a Paper Minecraft PvP plugin for configurable kits, custom item abi
 - WorldGuard: adds the `magickpvp-spawn` and `magickpvp-kit-switch` region flags.
 - LuckPerms: needed for XP ranks.
 - PlaceholderAPI: adds the `%magickpvp_...%` placeholders.
+- Nexo: lets kit items use Nexo items for custom textures/models (see [Nexo items](#nexo-items)).
 
 Kotlin, HikariCP, and the SQLite and MySQL JDBC drivers are downloaded by the server at startup through the `libraries` section of `plugin.yml`, so both storage modes work out of the box.
 
@@ -409,7 +410,7 @@ Example: `/magickpvp arena add center 0 64 0 0 0 DIAMOND 5 true <red>Center of a
 
 ### Stats and leaderboards
 
-The plugin stores kills, deaths and best kill streak per player in the `magickpvp_stats` table, next to XP. The current streak resets on death and when the player leaves.
+The plugin stores kills, deaths, best kill streak and current streak per player in the `magickpvp_stats` table, next to XP. The current streak resets on death and is kept when the player leaves or the server restarts.
 
 - `/magickpvp stats [player]` shows XP, kills, deaths, K/D and streaks.
 - `/magickpvp top [xp|kills|deaths|streak]` shows a leaderboard.
@@ -509,7 +510,7 @@ Kits without a `requirement` section are unaffected. Set `kit-requirements.enabl
 
 ### Kill streak rewards
 
-When `streak-rewards.enabled` is true, a killer who reaches a listed streak is rewarded. The streak resets to 0 on death and is not saved across restarts.
+When `streak-rewards.enabled` is true, a killer who reaches a listed streak is rewarded. The streak resets to 0 on death and is kept when the player leaves or the server restarts.
 
 | Field | Meaning |
 | --- | --- |
@@ -633,8 +634,26 @@ warrior:
 | `potion` | `type`, `duration`, `amplifier` for potion materials |
 | `cooldown` | Cooldown for the item's abilities |
 | `abilities` | Named ability sections. A single `ability` section is also accepted |
+| `nexo` | ID of a [Nexo](https://docs.nexomc.com/) item used as the item's base, giving it a custom texture. The `material` stays the fallback and still decides behavior such as ranged-weapon abilities. Requires the Nexo plugin |
 
 Selecting a kit replaces the player's inventory. Armor is equipped automatically, other items go in the inventory, and anything that does not fit is dropped. The inventory, armor, and off-hand are cleared on death and quit, and kit items are removed from death drops. **The cleanup clears the entire inventory**, not only MagicKPvP items.
+
+### Nexo items
+
+With the [Nexo](https://docs.nexomc.com/) plugin installed, any kit item can use a Nexo item as its base to get a custom texture or model from Nexo's resource pack:
+
+```yaml
+sword:
+  name: '<red>Warrior Sword'
+  material: NETHERITE_SWORD
+  nexo: warrior_sword
+```
+
+- `nexo` is the item ID defined in Nexo's item configuration.
+- MagicKPvP builds the item from Nexo and then applies everything set in `items.yml` (name, lore, enchantments, attributes, abilities, cooldown) on top, so abilities and stats work exactly like on a vanilla item.
+- `material` is still required. It is used as the fallback when Nexo is not installed or the ID does not exist, and it decides behavior that depends on the material, such as ranged-weapon abilities. Set it to the same material the Nexo item is based on.
+- If the Nexo item ID cannot be built, the item silently falls back to `material` and a warning is logged once per item.
+- Nexo loads its items asynchronously, so a missing ID is only reported in the console after Nexo has finished loading (or after `/magickpvp reload`). `/magickpvp reload` re-checks all IDs.
 
 ### Durations
 
@@ -662,23 +681,23 @@ Durations accept `10s`, `500ms`, `4t` (ticks), and `2m` (minutes). A plain numbe
 
 ### Ability types
 
-| Type | Trigger | What it does |
-| --- | --- | --- |
-| `potion_effect` | Passive | Keeps `effects` active while the item is held or worn |
-| `flight` | Right click | Gives flight for `duration` and warns before it ends |
-| `radiuseffect` | Hold the item | Applies `effects` to nearby players. `shape` is `circular`, `box`, or `sphere`, sized by `width` |
-| `randomized_target` | Right click | Picks a random player within `range` and runs `commands`, messages, and particles |
-| `projected` | Ranged weapon hit | Runs `commands`, messages, and particles on the player hit |
-| `swap` | Right click a player, or projectile hit | Swaps positions with the target |
-| `guardians` | Right click | Summons mobs that follow and fight for you |
-| `totem` | Right click | Places a totem that pulses effects, healing, or damage |
-| `decoy` | Right click | Leaves a decoy copy of you and makes you invisible |
-| `blackhole` | Right click | Pulls nearby entities toward the spot you aim at, then pushes them away |
-| `chain_lightning` | Right click or projectile hit | Strikes a target, then jumps to nearby players |
-| `dash` | Right click | Launches you forward, hitting players you pass through |
-| `rewind` | Right click | Returns you to your position and health from a few seconds ago |
-| `bloodlust` | Passive, on kill | Stacks buffs for each kill |
-| `silence` | Right click or projectile hit | Stops players from using abilities |
+| Type | Trigger | What it does|
+| --- | --- |----------------------------------------------------------------------------------------------|
+| `potion_effect` | Passive | Keeps `effects` active while the item is held or worn|
+| `flight` | Right click | Gives flight for `duration` and warns before it ends|
+| `radiuseffect` | Hold the item | Applies `effects` to nearby players. `shape` is `circular`, `box`, or `sphere`, sized by `width`|
+| `randomized_target` | Right click | Picks a random player within `range` and runs `commands`, messages, and particles|
+| `projected` | Ranged weapon hit | Runs `commands`, messages, and particles on the player hit|
+| `swap` | Right click a player, or projectile hit | Swaps positions with the target|
+| `guardians` | Right click | Summons mobs that follow and fight for you|
+| `totem` | Right click | Places a totem that pulses effects, healing, or damage|
+| `decoy` | Right click | Leaves a decoy copy of you and makes you invisible|
+| `blackhole` | Right click | Pulls nearby entities toward the spot you aim at, then pushes them away|
+| `chain_lightning` | Right click or projectile hit | Strikes a target, then jumps to nearby players|
+| `dash` | Right click | Launches you forward, hitting players you pass through|
+| `rewind` | Right click | Returns you to your position and health from a few seconds ago|
+| `bloodlust` | Passive, on kill | Stacks buffs for each kill|
+| `silence` | Right click or projectile hit | Stops players from using abilities and stops already ongoing abilities.|
 
 Aliases: `radius_effect`, `randomizedtarget`, `black_hole`, `chainlightning`.
 
@@ -688,7 +707,7 @@ Aliases: `radius_effect`, `randomizedtarget`, `black_hole`, `chainlightning`.
 
 **totem**: `material`, `small`, `name` (`{owner}`), `lifetime`, `health`, `radius`, `interval`, `affects` (`owner`, `others`, or `all`), `effects` (`name:level:duration`), `effect-duration`, `heal`, `damage`.
 
-**decoy**: the decoy is a player-model NPC with your skin and gear that wanders randomly. `wander` (default true), `speed` (blocks per tick, default 0.2), `wander-radius` (default 8), `direction-change` (default 1.5s), `lifetime`, `health`, `show-name`, `name` (`{owner}`), `glow`, `effects` (applied to the player who destroys it), `self-effects` (default is short invisibility), `effect-duration`.
+**decoy**: the decoy is a player-model NPC with your skin and gear that wanders randomly. `amount` (default 1, max 20) is how many decoys spawn at once, arranged in a ring around you; `wander` (default true), `speed` (blocks per tick, default 0.2), `wander-radius` (default 8), `direction-change` (default 1.5s), `lifetime`, `health`, `show-name`, `name` (`{owner}`), `glow`, `effects` (applied to the player who destroys it), `self-effects` (default is short invisibility), `effect-duration`.
 
 **blackhole**: `range`, `radius`, `strength`, `burst`, `damage`, `affect-owner`, `affect-mobs`, `duration`, `effects`, `effect-duration`.
 
