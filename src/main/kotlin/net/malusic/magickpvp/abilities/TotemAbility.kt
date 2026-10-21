@@ -45,7 +45,7 @@ internal class TotemAbility(plugin: PluginManager) : StandAbility<TotemAbility.T
             s.isSmall = cfg.getBoolean("small", false)
             s.setBasePlate(false)
             s.setArms(false)
-            s.equipment?.setHelmet(ItemStack(material))
+            s.equipment.setHelmet(ItemStack(material))
             cfg.getString("name")?.takeIf { it.isNotBlank() }?.let { name ->
                 s.customName(plugin.messages.parse(name, "owner" to owner.name))
                 s.isCustomNameVisible = true

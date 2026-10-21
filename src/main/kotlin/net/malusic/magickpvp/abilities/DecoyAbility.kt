@@ -75,10 +75,10 @@ internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior
                 m.setGravity(true)
                 m.mainHand = owner.mainHand
                 val gear = owner.equipment
-                m.equipment.setHelmet(gear.helmet?.clone())
-                m.equipment.setChestplate(gear.chestplate?.clone())
-                m.equipment.setLeggings(gear.leggings?.clone())
-                m.equipment.setBoots(gear.boots?.clone())
+                m.equipment.setHelmet(gear.helmet.clone())
+                m.equipment.setChestplate(gear.chestplate.clone())
+                m.equipment.setLeggings(gear.leggings.clone())
+                m.equipment.setBoots(gear.boots.clone())
                 m.equipment.setItemInMainHand(gear.itemInMainHand.clone())
                 m.equipment.setItemInOffHand(gear.itemInOffHand.clone())
                 if (cfg.getBoolean("show-name", true)) {
