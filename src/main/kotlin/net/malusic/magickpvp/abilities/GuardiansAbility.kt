@@ -48,7 +48,7 @@ class GuardiansAbility(private val plugin: PluginManager) : AbilityBehavior, Lis
         val rawType = cfg.getString("entity") ?: "wolf"
         val type = spawnable(rawType)
         if (type == null) {
-            plugin.logger.warning("Guardians ability on '${context.itemId}' has an unknown or non-mob entity '$rawType'.")
+            plugin.componentLogger.warn("Guardians ability on '${context.itemId}' has an unknown or non-mob entity '$rawType'.")
             return false
         }
 

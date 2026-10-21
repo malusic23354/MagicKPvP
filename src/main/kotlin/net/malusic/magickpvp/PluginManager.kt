@@ -2,7 +2,6 @@ package net.malusic.magickpvp
 
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
 import org.bukkit.plugin.java.JavaPlugin
-import java.util.logging.Level
 
 class PluginManager : JavaPlugin() {
 
@@ -63,7 +62,7 @@ class PluginManager : JavaPlugin() {
             try {
                 WorldGuardHook.register(this)
             } catch (failure: Throwable) {
-                logger.log(Level.WARNING, "Could not register the WorldGuard flag: ${failure.message}", failure)
+                componentLogger.warn("Could not register the WorldGuard flag: ${failure.message}", failure)
             }
         }
     }
@@ -102,12 +101,12 @@ class PluginManager : JavaPlugin() {
         }
         NexoHook.install(this)?.let { hook ->
             itemLoader.nexoItemSource = hook
-            logger.info("Nexo found, items can use custom Nexo textures.")
+            componentLogger.info("Nexo found, items can use custom Nexo textures.")
         }
 
         reloadAll()
         if (!data.open()) {
-            logger.severe("Disabling MagicKPvP because the database could not be opened, check the storage section of config.yml.")
+            componentLogger.error("Disabling MagicKPvP because the database could not be opened, check the storage section of config.yml.")
             server.pluginManager.disablePlugin(this)
             return
         }
@@ -115,14 +114,14 @@ class PluginManager : JavaPlugin() {
         try {
             kitUsage.load()
         } catch (failure: Exception) {
-            logger.log(Level.WARNING, "Could not load kit usage: ${failure.message}", failure)
+            componentLogger.warn("Could not load kit usage: ${failure.message}", failure)
         }
 
         for (player in server.onlinePlayers) {
             try {
                 data.preload(player.uniqueId)
             } catch (failure: Exception) {
-                logger.log(Level.WARNING, "Could not load data for ${player.name}: ${failure.message}", failure)
+                componentLogger.warn("Could not load data for ${player.name}: ${failure.message}", failure)
             }
         }
         syncAllRanks()
@@ -155,8 +154,6 @@ class PluginManager : JavaPlugin() {
                 "Main MagicKPvP command.",
                 listOf("mkp")
             )
-            // Registered as a main label (not an alias) so Paper overrides any
-            // other plugin's /spawn instead of deferring to it.
             registrar.register(
                 magickPvpCommand.buildSpawn(),
                 "Teleport to spawn and reset your kit."
@@ -167,28 +164,27 @@ class PluginManager : JavaPlugin() {
             try {
                 PlaceholderHook.install(this)
             } catch (failure: Throwable) {
-                logger.log(
-                    Level.WARNING,
+                componentLogger.warn(
                     "Could not register the PlaceholderAPI expansion (is PlaceholderAPI's API visible " +
                         "to this Paper plugin?): ${failure.message}",
                     failure
                 )
             }
         } else {
-            logger.info("PlaceholderAPI is not enabled, skipping expansion registration.")
+            componentLogger.info("PlaceholderAPI is not enabled, skipping expansion registration.")
         }
 
         if (!economy.available) {
-            logger.warning("No Vault economy provider found yet, buying and selling kits and coin rewards will not work until one is loaded.")
+            componentLogger.warn("No Vault economy provider found yet, buying and selling kits and coin rewards will not work until one is loaded.")
         }
-        logger.info("Plugin has been enabled!")
+        componentLogger.info("Plugin has been enabled!")
     }
 
     override fun onDisable() {
         if (::abilities.isInitialized) abilities.stop()
         if (::stats.isInitialized) stats.stop()
         if (::data.isInitialized) data.close()
-        logger.info("Ah shi- i lost power.")
+        componentLogger.info("Ah shi- i lost power.")
     }
 
     fun reloadAll() {
@@ -204,7 +200,7 @@ class PluginManager : JavaPlugin() {
 
         ranks?.load()
         if (configuration.ranks.enabled && ranks == null) {
-            logger.warning("ranks.enabled is true but LuckPerms is not installed, ranks will not be applied.")
+            componentLogger.warn("ranks.enabled is true but LuckPerms is not installed, ranks will not be applied.")
         }
         if (data.isOpen) {
             syncAllRanks()
@@ -213,7 +209,7 @@ class PluginManager : JavaPlugin() {
 
         for (kit in configuration.kits) {
             if (itemLoader.get(kit.id) == null) {
-                logger.warning("config.yml lists kit '${kit.id}' but items.yml has no such item.")
+                componentLogger.warn("config.yml lists kit '${kit.id}' but items.yml has no such item.")
             }
         }
     }

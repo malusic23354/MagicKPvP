@@ -73,9 +73,9 @@ class PlaceholderHook(private val plugin: PluginManager) : PlaceholderExpansion(
             val expansion = PlaceholderHook(plugin)
             val registered = expansion.register()
             if (registered) {
-                plugin.logger.info("Registered PlaceholderAPI expansion '$IDENTIFIER'.")
+                plugin.componentLogger.info("Registered PlaceholderAPI expansion '$IDENTIFIER'.")
             } else {
-                plugin.logger.warning(
+                plugin.componentLogger.warn(
                     "PlaceholderAPI expansion '$IDENTIFIER' did not register: an expansion with that " +
                         "identifier is already present, or the ExpansionRegisterEvent was cancelled. " +
                         "Run /papi list to check, then restart the server."

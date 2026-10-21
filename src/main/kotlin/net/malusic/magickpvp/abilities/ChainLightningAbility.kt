@@ -39,7 +39,7 @@ class ChainLightningAbility(private val plugin: PluginManager) : AbilityBehavior
             lineOfSight = cfg.getBoolean("line-of-sight", true),
             mobs = cfg.getBoolean("affect-mobs", false),
             effects = cfg.timedEffects("effects", cfg.ticks("effect-duration", 40L)) {
-                plugin.logger.warning("Chain lightning has an unknown effect '$it'.")
+                plugin.componentLogger.warn("Chain lightning has an unknown effect '$it'.")
             },
             particle = ability.particle?.particle ?: Particle.ELECTRIC_SPARK,
             amount = (ability.particle?.amount ?: 12).coerceAtLeast(2)

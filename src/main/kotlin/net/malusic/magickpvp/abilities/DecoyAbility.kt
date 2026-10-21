@@ -56,7 +56,7 @@ internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior
         val amount = cfg.getInt("amount", 1).coerceIn(1, MAX_DECOYS)
         val effectDefault = cfg.ticks("effect-duration", 60L)
         val effects = cfg.timedEffects("effects", effectDefault) {
-            plugin.logger.warning("Decoy on '${context.itemId}' has an unknown effect '$it'.")
+            plugin.componentLogger.warn("Decoy on '${context.itemId}' has an unknown effect '$it'.")
         }
         val health = cfg.getDouble("health", 4.0).coerceAtLeast(1.0)
         val lifetime = System.currentTimeMillis() + cfg.ticks("lifetime", 200L) * 50L
@@ -107,7 +107,7 @@ internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior
 
         if (cfg.contains("self-effects")) {
             cfg.timedEffects("self-effects", effectDefault) {
-                plugin.logger.warning("Decoy on '${context.itemId}' has an unknown self effect '$it'.")
+                plugin.componentLogger.warn("Decoy on '${context.itemId}' has an unknown self effect '$it'.")
             }.forEach { it.applyTo(owner) }
         }
 

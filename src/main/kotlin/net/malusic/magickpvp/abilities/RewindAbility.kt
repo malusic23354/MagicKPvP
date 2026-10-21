@@ -55,7 +55,7 @@ class RewindAbility(private val plugin: PluginManager) : AbilityBehavior, Listen
         }
 
         cfg.timedEffects("self-effects", cfg.ticks("effect-duration", 60L)) {
-            plugin.logger.warning("Rewind on '${context.itemId}' has an unknown self effect '$it'.")
+            plugin.componentLogger.warn("Rewind on '${context.itemId}' has an unknown self effect '$it'.")
         }.forEach { it.applyTo(player) }
 
         val particle = ability.particle?.particle ?: Particle.REVERSE_PORTAL

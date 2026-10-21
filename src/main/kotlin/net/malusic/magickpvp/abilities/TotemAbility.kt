@@ -65,7 +65,7 @@ internal class TotemAbility(plugin: PluginManager) : StandAbility<TotemAbility.T
                 intervalMs = cfg.ticks("interval", 20L) * 50L,
                 affects = cfg.getString("affects")?.trim()?.lowercase() ?: "owner",
                 effects = cfg.timedEffects("effects", effectDefault) {
-                    plugin.logger.warning("Totem on '${context.itemId}' has an unknown effect '$it'.")
+                    plugin.componentLogger.warn("Totem on '${context.itemId}' has an unknown effect '$it'.")
                 },
                 heal = cfg.getDouble("heal", 0.0).coerceAtLeast(0.0),
                 damage = cfg.getDouble("damage", 0.0).coerceAtLeast(0.0)

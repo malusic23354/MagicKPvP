@@ -89,7 +89,7 @@ class KitMenu(private val plugin: PluginManager) : Listener {
                     placed += custom.id
                     continue
                 }
-                plugin.logger.warning("Kit '${custom.id}' wanted slot $slot on page ${entry.page} which is taken, placing it automatically.")
+                plugin.componentLogger.warn("Kit '${custom.id}' wanted slot $slot on page ${entry.page} which is taken, placing it automatically.")
             }
             queue[custom.id] = entry.lore
         }

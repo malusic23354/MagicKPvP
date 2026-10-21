@@ -22,7 +22,7 @@ class RandomizedTargetAbility(
         }
         val target = candidates.randomOrNull()
         if (target == null) {
-            plugin.logger.info(
+            plugin.componentLogger.info(
                 "[mkp-debug] randomized_target '${context.itemId}' by ${inflictor.name}: NO candidates " +
                     "(players in world=${inflictor.world.players.size}, range=${ability.range})"
             )
@@ -30,7 +30,7 @@ class RandomizedTargetAbility(
             return false
         }
 
-        plugin.logger.info(
+        plugin.componentLogger.info(
             "[mkp-debug] randomized_target '${context.itemId}': ${inflictor.name} -> ${target.name} " +
                 "(candidates=${candidates.size}, range=${ability.range})"
         )

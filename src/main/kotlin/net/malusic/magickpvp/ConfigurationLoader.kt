@@ -183,7 +183,7 @@ class ConfigurationLoader(private val plugin: PluginManager) {
             null, "selection" -> ArenaMode.SELECTION
             "randomized" -> ArenaMode.RANDOMIZED
             else -> {
-                plugin.logger.warning("arenaMode must be 'selection' or 'randomized' (got '$raw'), using selection.")
+                plugin.componentLogger.warn("arenaMode must be 'selection' or 'randomized' (got '$raw'), using selection.")
                 ArenaMode.SELECTION
             }
         }
@@ -196,7 +196,7 @@ class ConfigurationLoader(private val plugin: PluginManager) {
 
         val size = cfg.getInt("menu.size", 54)
         menuSize = if (size in 9..54 && size % 9 == 0) size else {
-            plugin.logger.warning("menu.size must be a multiple of 9 between 9 and 54, using 54.")
+            plugin.componentLogger.warn("menu.size must be a multiple of 9 between 9 and 54, using 54.")
             54
         }
         menuPages = cfg.getInt("menu.pages", 1).coerceIn(1, MAX_PAGES)
@@ -210,7 +210,7 @@ class ConfigurationLoader(private val plugin: PluginManager) {
             val id = map["id"]?.toString() ?: continue
             var slot = (map["slot"] as? Number)?.toInt()
             if (slot != null && slot !in 0 until menuSize) {
-                plugin.logger.warning("Kit '$id' has a slot outside the menu, it will be placed automatically.")
+                plugin.componentLogger.warn("Kit '$id' has a slot outside the menu, it will be placed automatically.")
                 slot = null
             }
             val page = ((map["page"] as? Number)?.toInt() ?: 1).coerceIn(1, MAX_PAGES)
@@ -225,7 +225,7 @@ class ConfigurationLoader(private val plugin: PluginManager) {
             null, "sqlite" -> StorageType.SQLITE
             "mysql" -> StorageType.MYSQL
             else -> {
-                plugin.logger.warning("storage.type must be 'sqlite' or 'mysql' (got '$raw'), using sqlite.")
+                plugin.componentLogger.warn("storage.type must be 'sqlite' or 'mysql' (got '$raw'), using sqlite.")
                 StorageType.SQLITE
             }
         }
@@ -260,7 +260,7 @@ class ConfigurationLoader(private val plugin: PluginManager) {
             section.getKeys(false).mapNotNull { key ->
                 val xp = section.getLong(key, -1L)
                 if (xp < 0L) {
-                    plugin.logger.warning("ranks.groups.$key needs a non-negative XP amount, ignoring it.")
+                    plugin.componentLogger.warn("ranks.groups.$key needs a non-negative XP amount, ignoring it.")
                     null
                 } else {
                     RankGroup(key.lowercase(), xp)
@@ -315,7 +315,7 @@ class ConfigurationLoader(private val plugin: PluginManager) {
         val streakRewards = ArrayList<StreakReward>()
         for (map in cfg.getMapList("streak-rewards.rewards")) {
             val streak = (map["streak"] as? Number)?.toLong()?.takeIf { it > 0L } ?: run {
-                plugin.logger.warning("A streak reward needs a positive 'streak' value, ignoring it.")
+                plugin.componentLogger.warn("A streak reward needs a positive 'streak' value, ignoring it.")
                 null
             } ?: continue
             streakRewards += StreakReward(
@@ -339,7 +339,7 @@ class ConfigurationLoader(private val plugin: PluginManager) {
                 "death" -> CombatLogMode.DEATH
                 "reduction" -> CombatLogMode.REDUCTION
                 else -> {
-                    plugin.logger.warning("combat-log-punishment.mode must be 'death', 'reduction' or 'off' (got '$raw'), using off.")
+                    plugin.componentLogger.warn("combat-log-punishment.mode must be 'death', 'reduction' or 'off' (got '$raw'), using off.")
                     CombatLogMode.OFF
                 }
             },

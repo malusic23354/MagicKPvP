@@ -1,5 +1,7 @@
 package net.malusic.magickpvp
 
+import io.papermc.paper.datacomponent.DataComponentTypes
+import io.papermc.paper.datacomponent.item.TooltipDisplay
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
 import org.bukkit.Particle
@@ -11,7 +13,6 @@ import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.inventory.EquipmentSlot
 import org.bukkit.inventory.EquipmentSlotGroup
-import org.bukkit.inventory.ItemFlag
 import org.bukkit.inventory.ItemStack
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.potion.PotionEffectType
@@ -133,7 +134,7 @@ class ItemLoader(private val plugin: PluginManager) {
                 allPieces[parsed.id] = parsed
             }
             if (pieceMap.isEmpty()) {
-                plugin.logger.warning("Kit '$id' has no item sections (expected helmet/chestplate/etc), skipping it.")
+                plugin.componentLogger.warn("Kit '$id' has no item sections (expected helmet/chestplate/etc), skipping it.")
                 continue
             }
             loaded[id] = CustomKit(id, section.getString("name") ?: id,
@@ -143,7 +144,7 @@ class ItemLoader(private val plugin: PluginManager) {
         kits = loaded
         piecesById = allPieces
         warnedNexo.clear()
-        plugin.logger.info("Loaded ${kits.size} kit(s) containing ${piecesById.size} item(s) from items.yml.")
+        plugin.componentLogger.info("Loaded ${kits.size} kit(s) containing ${piecesById.size} item(s) from items.yml.")
         validateNexo()
     }
 
@@ -153,7 +154,7 @@ class ItemLoader(private val plugin: PluginManager) {
         for (piece in piecesById.values) {
             val nexoId = piece.nexoId ?: continue
             if (!source.exists(nexoId)) {
-                plugin.logger.warning(
+                plugin.componentLogger.warn(
                     "Item '${piece.id}' references Nexo item '$nexoId' which does not exist, it will use its material instead."
                 )
             }
@@ -172,7 +173,7 @@ class ItemLoader(private val plugin: PluginManager) {
             }
             if (nexoId !in warnedNexo) {
                 warnedNexo += nexoId
-                plugin.logger.warning(
+                plugin.componentLogger.warn(
                     "Item '${custom.id}' uses Nexo item '$nexoId' which could not be built" +
                         (if (nexoItemSource == null) " (Nexo is not installed)" else "") +
                         ", falling back to ${custom.material}."
@@ -190,6 +191,7 @@ class ItemLoader(private val plugin: PluginManager) {
         meta.displayName(messages.parse(custom.name))
 
         val lore = custom.lore.map { messages.parse(it) }.toMutableList()
+        var hideAttributes = false
 
         if (custom.glow) meta.setEnchantmentGlintOverride(true)
         if (custom.unbreakable) meta.isUnbreakable = true
@@ -214,14 +216,14 @@ class ItemLoader(private val plugin: PluginManager) {
             }
             val overridden = custom.attributes.filter { it.override }
             if (overridden.isNotEmpty()) {
-                meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES)
+                hideAttributes = true
                 overridden.mapNotNull { it.text }.forEach { lore += messages.parse(it) }
             }
         }
 
         if (custom.potion != null) {
             if (meta !is PotionMeta) {
-                plugin.logger.warning(
+                plugin.componentLogger.warn(
                     "Item '${custom.id}' has potion settings but its material does not support potion metadata."
                 )
             } else {
@@ -242,6 +244,12 @@ class ItemLoader(private val plugin: PluginManager) {
         if (tagged) meta.persistentDataContainer.set(itemKey, PersistentDataType.STRING, custom.id)
 
         stack.itemMeta = meta
+        if (hideAttributes) {
+            stack.setData(
+                DataComponentTypes.TOOLTIP_DISPLAY,
+                TooltipDisplay.tooltipDisplay().addHiddenComponents(DataComponentTypes.ATTRIBUTE_MODIFIERS).build()
+            )
+        }
         return stack
     }
 
@@ -266,7 +274,7 @@ class ItemLoader(private val plugin: PluginManager) {
     private fun parseItem(id: String, kitName: String, s: ConfigurationSection): CustomItem? {
         val material = s.getString("material")?.let { Material.matchMaterial(it) }
         if (material == null || !material.isItem || material.isAir) {
-            plugin.logger.warning("Item '$id' has an invalid material, skipping it.")
+            plugin.componentLogger.warn("Item '$id' has an invalid material, skipping it.")
             return null
         }
 
@@ -276,7 +284,7 @@ class ItemLoader(private val plugin: PluginManager) {
             val parts = line.split(':')
             val enchant = mcKey(parts[0])?.let { Registry.ENCHANTMENT.get(it) }
             if (enchant == null) {
-                plugin.logger.warning("Item '$id' has an unknown enchantment '$line'.")
+                plugin.componentLogger.warn("Item '$id' has an unknown enchantment '$line'.")
                 continue
             }
             enchantments[enchant] = parts.getOrNull(1)?.trim()?.toIntOrNull() ?: 1
@@ -289,7 +297,7 @@ class ItemLoader(private val plugin: PluginManager) {
                 ?.let { Registry.EFFECT.get(it) }
 
             if (effectType == null) {
-                plugin.logger.warning("Item '$id' has an invalid potion effect type.")
+                plugin.componentLogger.warn("Item '$id' has an invalid potion effect type.")
                 null
             } else {
                 PotionSpec(
@@ -311,7 +319,7 @@ class ItemLoader(private val plugin: PluginManager) {
                 ?: EquipmentSlotGroup.MAINHAND
             val amount = (map["amount"] as? Number)?.toDouble() ?: map["amount"]?.toString()?.toDoubleOrNull()
             if (attribute == null || amount == null) {
-                plugin.logger.warning("Item '$id' has an invalid attribute entry, skipping it.")
+                plugin.componentLogger.warn("Item '$id' has an invalid attribute entry, skipping it.")
                 continue
             }
             attributes += AttributeSpec(
@@ -328,7 +336,7 @@ class ItemLoader(private val plugin: PluginManager) {
             section.getKeys(false).mapNotNull { key ->
                 val abilitySection = section.getConfigurationSection(key)
                 if (abilitySection == null) {
-                    plugin.logger.warning(
+                    plugin.componentLogger.warn(
                         "Item '$id' has an invalid abilities.$key entry, skipping it."
                     )
                     null
@@ -366,7 +374,7 @@ class ItemLoader(private val plugin: PluginManager) {
 
         val max = material.maxDurability.toInt()
         if (max <= 0) {
-            plugin.logger.warning(
+            plugin.componentLogger.warn(
                 "Item '$itemId' has a durability tag but ${material.name} has no durability, ignoring it."
             )
             return null
@@ -380,13 +388,13 @@ class ItemLoader(private val plugin: PluginManager) {
         }
 
         if (value == null) {
-            plugin.logger.warning(
+            plugin.componentLogger.warn(
                 "Item '$itemId' has an invalid durability '$raw' (expected points or a percentage like '50%')."
             )
             return null
         }
         if (value !in 1..max) {
-            plugin.logger.warning(
+            plugin.componentLogger.warn(
                 "Item '$itemId' durability $value is outside 1..$max for ${material.name}, clamping it."
             )
         }
@@ -397,7 +405,7 @@ class ItemLoader(private val plugin: PluginManager) {
         if (durability == null || meta !is Damageable) return
         val max = type.maxDurability.toInt()
         if (max <= 0) {
-            plugin.logger.warning(
+            plugin.componentLogger.warn(
                 "Item '$itemId' has a durability tag but ${type.name} has no durability, ignoring it."
             )
             return
@@ -409,7 +417,7 @@ class ItemLoader(private val plugin: PluginManager) {
         val rawType = s.getString("type")
         val behavior = rawType?.let { plugin.abilities.registry.get(it) }
         if (behavior == null) {
-            plugin.logger.warning("Item '$itemId' has an unknown ability type '${rawType ?: "(none)"}', ignoring its ability.")
+            plugin.componentLogger.warn("Item '$itemId' has an unknown ability type '${rawType ?: "(none)"}', ignoring its ability.")
             return null
         }
         val type = behavior.key
@@ -419,7 +427,7 @@ class ItemLoader(private val plugin: PluginManager) {
             "box" -> AbilityShape.BOX
             "sphere" -> AbilityShape.SPHERE
             else -> {
-                plugin.logger.warning("Item '$itemId' has an unknown shape, using circular.")
+                plugin.componentLogger.warn("Item '$itemId' has an unknown shape, using circular.")
                 AbilityShape.CIRCULAR
             }
         }
@@ -440,7 +448,7 @@ class ItemLoader(private val plugin: PluginManager) {
 
             val effect = mcKey(effectName)?.let { Registry.EFFECT.get(it) }
             if (effect == null) {
-                plugin.logger.warning("Item '$itemId' has an unknown effect '$line'.")
+                plugin.componentLogger.warn("Item '$itemId' has an unknown effect '$line'.")
                 continue
             }
             val level = parts.getOrNull(1)?.trim()?.toIntOrNull() ?: 1
@@ -456,7 +464,7 @@ class ItemLoader(private val plugin: PluginManager) {
             }
             val text = map["message"]?.toString()
             if (receiver == null || text == null) {
-                plugin.logger.warning("Item '$itemId' has an invalid activationmessage entry, skipping it.")
+                plugin.componentLogger.warn("Item '$itemId' has an invalid activationmessage entry, skipping it.")
                 continue
             }
             messages += ActivationMessage(receiver, text)
@@ -480,11 +488,11 @@ class ItemLoader(private val plugin: PluginManager) {
         val raw = s.getString("type")?.takeIf { it.isNotBlank() } ?: return null
         val particle = findParticle(raw)
         if (particle == null) {
-            plugin.logger.warning("Item '$itemId' has an unknown particle '$raw'.")
+            plugin.componentLogger.warn("Item '$itemId' has an unknown particle '$raw'.")
             return null
         }
         if (particle.dataType != Void::class.java) {
-            plugin.logger.warning("Item '$itemId' uses particle '$raw' which needs extra data, it is not supported.")
+            plugin.componentLogger.warn("Item '$itemId' uses particle '$raw' which needs extra data, it is not supported.")
             return null
         }
         return ParticleSpec(particle, s.getInt("amount", 1).coerceAtLeast(1), s.getDouble("speed", 0.0))

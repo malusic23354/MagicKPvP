@@ -25,18 +25,18 @@ class RankManager(private val plugin: PluginManager) {
 
         val track = luckPerms.trackManager.getTrack(settings.track)
         if (track == null) {
-            plugin.logger.warning("ranks.track '${settings.track}' does not exist in LuckPerms, ranks are disabled.")
+            plugin.componentLogger.warn("ranks.track '${settings.track}' does not exist in LuckPerms, ranks are disabled.")
             return
         }
 
         val inTrack = track.groups.map { it.lowercase() }.toSet()
         val valid = settings.groups.filter { entry ->
             val ok = entry.group in inTrack
-            if (!ok) plugin.logger.warning("Group '${entry.group}' is not in LuckPerms track '${settings.track}', ignoring it.")
+            if (!ok) plugin.componentLogger.warn("Group '${entry.group}' is not in LuckPerms track '${settings.track}', ignoring it.")
             ok
         }
         if (valid.isEmpty()) {
-            plugin.logger.warning("ranks.groups has no usable groups, ranks are disabled.")
+            plugin.componentLogger.warn("ranks.groups has no usable groups, ranks are disabled.")
             return
         }
 

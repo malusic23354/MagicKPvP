@@ -40,7 +40,7 @@ class DashAbility(private val plugin: PluginManager) : AbilityBehavior, Listener
 
         val effectDefault = cfg.ticks("effect-duration", 40L)
         cfg.timedEffects("self-effects", effectDefault) {
-            plugin.logger.warning("Dash on '${context.itemId}' has an unknown self effect '$it'.")
+            plugin.componentLogger.warn("Dash on '${context.itemId}' has an unknown self effect '$it'.")
         }.forEach { it.applyTo(owner) }
 
         val duration = cfg.ticks("duration", 10L)
@@ -49,7 +49,7 @@ class DashAbility(private val plugin: PluginManager) : AbilityBehavior, Listener
         val knockback = cfg.getDouble("hit-knockback", 0.8)
         val mobs = cfg.getBoolean("affect-mobs", false)
         val hitEffects = cfg.timedEffects("effects", effectDefault) {
-            plugin.logger.warning("Dash on '${context.itemId}' has an unknown effect '$it'.")
+            plugin.componentLogger.warn("Dash on '${context.itemId}' has an unknown effect '$it'.")
         }
         val hits = HashSet<UUID>()
         val particle = ability.particle

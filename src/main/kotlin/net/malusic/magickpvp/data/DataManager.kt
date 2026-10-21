@@ -11,7 +11,6 @@ import java.util.UUID
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import java.util.logging.Level
 
 class DataManager(private val plugin: PluginManager) : Listener {
 
@@ -25,8 +24,7 @@ class DataManager(private val plugin: PluginManager) : Listener {
         val opened = try {
             SqlPlayerStorage.open(plugin, settings)
         } catch (failure: Exception) {
-            plugin.logger.log(
-                Level.SEVERE,
+            plugin.componentLogger.error(
                 "Could not open ${settings.type.name.lowercase()} storage: ${failure.message}",
                 failure
             )
@@ -37,7 +35,7 @@ class DataManager(private val plugin: PluginManager) : Listener {
 
         importLegacyYaml(opened)
 
-        plugin.logger.info("Using ${settings.type.name.lowercase()} storage.")
+        plugin.componentLogger.info("Using ${settings.type.name.lowercase()} storage.")
         return true
     }
 
@@ -45,7 +43,7 @@ class DataManager(private val plugin: PluginManager) : Listener {
         executor?.let {
             it.shutdown()
             if (!it.awaitTermination(10, TimeUnit.SECONDS)) {
-                plugin.logger.warning("Storage was still busy after 10 seconds, some recent changes may not have been saved.")
+                plugin.componentLogger.warn("Storage was still busy after 10 seconds, some recent changes may not have been saved.")
             }
         }
         executor = null
@@ -60,7 +58,7 @@ class DataManager(private val plugin: PluginManager) : Listener {
             try {
                 action(target)
             } catch (failure: Exception) {
-                plugin.logger.log(Level.SEVERE, "Could not write player data to the database: ${failure.message}", failure)
+                plugin.componentLogger.error("Could not write player data to the database: ${failure.message}", failure)
             }
         }
     }
@@ -87,7 +85,7 @@ class DataManager(private val plugin: PluginManager) : Listener {
         try {
             preload(event.uniqueId)
         } catch (failure: Exception) {
-            plugin.logger.log(Level.SEVERE, "Could not load data for ${event.name}: ${failure.message}", failure)
+            plugin.componentLogger.error("Could not load data for ${event.name}: ${failure.message}", failure)
             event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, plugin.messages.component("storage-error"))
         }
     }
@@ -116,15 +114,15 @@ class DataManager(private val plugin: PluginManager) : Listener {
         try {
             target.addKits(entries)
         } catch (failure: Exception) {
-            plugin.logger.log(Level.SEVERE, "Could not import data.yml, it was left untouched: ${failure.message}", failure)
+            plugin.componentLogger.error("Could not import data.yml, it was left untouched: ${failure.message}", failure)
             return
         }
 
         val renamed = File(plugin.dataFolder, "data.yml.migrated")
         if (legacy.renameTo(renamed)) {
-            plugin.logger.info("Imported ${entries.size} player(s) from data.yml into the database (file renamed to data.yml.migrated).")
+            plugin.componentLogger.info("Imported ${entries.size} player(s) from data.yml into the database (file renamed to data.yml.migrated).")
         } else {
-            plugin.logger.warning("Imported data.yml but could not rename it, it will be imported again on the next start.")
+            plugin.componentLogger.warn("Imported data.yml but could not rename it, it will be imported again on the next start.")
         }
     }
 }

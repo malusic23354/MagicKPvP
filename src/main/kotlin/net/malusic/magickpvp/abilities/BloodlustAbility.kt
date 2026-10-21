@@ -47,7 +47,7 @@ class BloodlustAbility(private val plugin: PluginManager) : AbilityBehavior, Lis
         state.until = now + duration * 50L
 
         cfg.timedEffects("effects", duration) {
-            plugin.logger.warning("Bloodlust has an unknown effect '$it'.")
+            plugin.componentLogger.warn("Bloodlust has an unknown effect '$it'.")
         }.forEach { it.applyTo(killer, (state.count - 1) * perStack) }
 
         val heal = cfg.getDouble("heal", 0.0)

@@ -54,7 +54,7 @@ class WorldGuardHook : AbilityZoneCheck {
                 if (existing is StateFlag) {
                     existing
                 } else {
-                    plugin.logger.warning("Another plugin already registered a WorldGuard flag named '$name', zone rules are disabled.")
+                    plugin.componentLogger.warn("Another plugin already registered a WorldGuard flag named '$name', zone rules are disabled.")
                     null
                 }
             }

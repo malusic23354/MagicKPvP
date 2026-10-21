@@ -9,7 +9,6 @@ import org.bukkit.event.entity.PlayerDeathEvent
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
-import java.util.logging.Level
 
 class StatsManager(private val plugin: PluginManager) : Listener {
 
@@ -71,7 +70,7 @@ class StatsManager(private val plugin: PluginManager) : Listener {
                 NAMES.associateWith { stat -> storage.top(stat, size).map { Entry(it.first, it.second) } }
             }
         } catch (failure: Exception) {
-            plugin.logger.log(Level.WARNING, "Could not refresh the leaderboards: ${failure.message}")
+            plugin.componentLogger.warn("Could not refresh the leaderboards: ${failure.message}")
         }
     }
 

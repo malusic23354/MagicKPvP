@@ -3,7 +3,6 @@ package net.malusic.magickpvp
 import java.io.File
 import java.io.IOException
 import java.util.UUID
-import java.util.logging.Level
 import org.bukkit.Location
 import org.bukkit.configuration.file.YamlConfiguration
 import org.bukkit.entity.Player
@@ -40,7 +39,7 @@ class SpawnManager(private val plugin: PluginManager) : Listener {
         val coordinates = parseNumbers(cfg.getString("spawn.coordinates"), 3)
         if (coordinates == null) {
             if (cfg.contains("spawn.coordinates")) {
-                plugin.logger.warning("spawn.coordinates must look like 'x, y, z', the spawn point is disabled.")
+                plugin.componentLogger.warn("spawn.coordinates must look like 'x, y, z', the spawn point is disabled.")
             }
             return
         }
@@ -72,7 +71,7 @@ class SpawnManager(private val plugin: PluginManager) : Listener {
         try {
             cfg.save(file)
         } catch (failure: IOException) {
-            plugin.logger.log(Level.WARNING, "Could not save the spawn point to config.yml: ${failure.message}", failure)
+            plugin.componentLogger.warn("Could not save the spawn point to config.yml: ${failure.message}", failure)
         }
     }
 

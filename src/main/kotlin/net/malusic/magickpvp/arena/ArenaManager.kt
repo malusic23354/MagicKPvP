@@ -3,7 +3,6 @@ package net.malusic.magickpvp
 import java.io.File
 import java.io.IOException
 import java.util.Locale
-import java.util.logging.Level
 import org.bukkit.Location
 import org.bukkit.Material
 import org.bukkit.World
@@ -33,7 +32,7 @@ class ArenaManager(private val plugin: PluginManager) {
                 parse(key, child)?.let { spots[key] = it }
             }
         }
-        plugin.logger.info("Loaded ${spots.size} arena spot(s) from arena.yml.")
+        plugin.componentLogger.info("Loaded ${spots.size} arena spot(s) from arena.yml.")
     }
 
     fun put(spot: ArenaSpot) {
@@ -82,7 +81,7 @@ class ArenaManager(private val plugin: PluginManager) {
     private fun parse(id: String, section: ConfigurationSection): ArenaSpot? {
         val coordinates = parseNumbers(section.getString("coordinates"), 3)
         if (coordinates == null) {
-            plugin.logger.warning("Arena spot '$id' needs coordinates like 'x, y, z', skipping it.")
+            plugin.componentLogger.warn("Arena spot '$id' needs coordinates like 'x, y, z', skipping it.")
             return null
         }
         val rotation = parseNumbers(section.getString("pitch"), 2) ?: listOf(0.0, 0.0)
@@ -90,7 +89,7 @@ class ArenaManager(private val plugin: PluginManager) {
         val rawMaterial = section.getString("material")
         val material = rawMaterial?.let { Material.matchMaterial(it) }?.takeIf { it.isItem && !it.isAir }
         if (rawMaterial != null && material == null) {
-            plugin.logger.warning("Arena spot '$id' has an invalid material '$rawMaterial', using the default icon.")
+            plugin.componentLogger.warn("Arena spot '$id' has an invalid material '$rawMaterial', using the default icon.")
         }
 
         return ArenaSpot(
@@ -125,7 +124,7 @@ class ArenaManager(private val plugin: PluginManager) {
         try {
             cfg.save(file)
         } catch (failure: IOException) {
-            plugin.logger.log(Level.WARNING, "Could not save arena.yml: ${failure.message}", failure)
+            plugin.componentLogger.warn("Could not save arena.yml: ${failure.message}", failure)
         }
     }
 

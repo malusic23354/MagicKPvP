@@ -5,7 +5,6 @@ import com.nexomc.nexo.api.events.NexoItemsLoadedEvent
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import org.bukkit.inventory.ItemStack
-import java.util.logging.Level
 
 interface NexoItemSource {
     fun build(itemId: String): ItemStack?
@@ -18,7 +17,7 @@ class NexoHook(private val plugin: PluginManager) : NexoItemSource, Listener {
     override fun build(itemId: String): ItemStack? =
         runCatching { NexoItems.optionalItemFromId(itemId).map { it.build() }.orElse(null) }
             .getOrElse { failure ->
-                plugin.logger.log(Level.FINE, "Could not build Nexo item '$itemId': ${failure.message}", failure)
+                plugin.componentLogger.debug("Could not build Nexo item '$itemId': ${failure.message}", failure)
                 null
             }
 
@@ -39,7 +38,7 @@ class NexoHook(private val plugin: PluginManager) : NexoItemSource, Listener {
             return try {
                 NexoHook(plugin).also { plugin.server.pluginManager.registerEvents(it, plugin) }
             } catch (failure: Throwable) {
-                plugin.logger.log(Level.WARNING, "Could not hook into Nexo: ${failure.message}", failure)
+                plugin.componentLogger.warn("Could not hook into Nexo: ${failure.message}", failure)
                 null
             }
         }

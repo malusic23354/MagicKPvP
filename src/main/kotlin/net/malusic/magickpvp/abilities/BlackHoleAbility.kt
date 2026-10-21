@@ -40,7 +40,7 @@ class BlackHoleAbility(private val plugin: PluginManager) : AbilityBehavior {
         val duration = cfg.ticks("duration", 80L)
         val effectDefault = cfg.ticks("effect-duration", 40L)
         val effects = cfg.timedEffects("effects", effectDefault) {
-            plugin.logger.warning("Black hole on '${context.itemId}' has an unknown effect '$it'.")
+            plugin.componentLogger.warn("Black hole on '${context.itemId}' has an unknown effect '$it'.")
         }
         val particle = ability.particle?.particle ?: Particle.PORTAL
         val amount = (ability.particle?.amount ?: 30).coerceAtLeast(4)

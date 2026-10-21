@@ -327,7 +327,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
     fun onEggThrow(event: PlayerEggThrowEvent) {
         val tagged = event.egg.persistentDataContainer.has(projectileKey, PersistentDataType.STRING)
         if (tagged) event.isHatching = false
-        plugin.logger.info(
+        plugin.componentLogger.info(
             "[mkp-debug] egg of ${event.player.name} landed: tagged=$tagged hatching=${event.isHatching}"
         )
     }

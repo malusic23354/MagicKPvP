@@ -29,12 +29,12 @@ class AdvancementLoader(private val plugin: PluginManager) {
             val entry = section?.getConfigurationSection(id) ?: continue
             val type = AdvancementType.parse(entry.getString("type"))
             if (type == null) {
-                plugin.logger.warning("Advancement '$id' has an invalid type, ignoring it.")
+                plugin.componentLogger.warn("Advancement '$id' has an invalid type, ignoring it.")
                 continue
             }
             val target = entry.getLong("amount", 1L)
             if (target <= 0L) {
-                plugin.logger.warning("Advancement '$id' needs a positive amount, ignoring it.")
+                plugin.componentLogger.warn("Advancement '$id' needs a positive amount, ignoring it.")
                 continue
             }
 
