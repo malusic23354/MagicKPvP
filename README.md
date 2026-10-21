@@ -51,7 +51,7 @@ MagicKPvP turns a Paper server into a kit PvP arena. Kits are plain YAML: every 
 - Kit-item protection and optional non-kit item prevention.
 - SQLite or MySQL storage and live reload with `/magickpvp reload`.
 
-**1. Requirements
+**1. Requirements**
 
 | | |
 | --- | --- |
@@ -65,7 +65,7 @@ MagicKPvP turns a Paper server into a kit PvP arena. Kits are plain YAML: every 
 - **PlaceholderAPI** exposes the `%magickpvp_...%` placeholders.
 - **Nexo** lets kit items use Nexo items for custom textures.
 
-**2. Installation
+**2. Installation**
 
 1. Download the latest release from [Modrinth](https://modrinth.com/plugin/magickpvp/) or [build it from source](#building-from-source).
 2. Install [Vault](https://www.spigotmc.org/resources/vault.34315/) and an economy plugin.
