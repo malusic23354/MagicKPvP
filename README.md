@@ -18,7 +18,7 @@
 
 MagicKPvP turns a Paper server into a kit PvP arena. Kits are plain YAML: every item can carry enchantments, attributes, lore, cooldowns and one or more abilities. Players buy, sell and select kits from a paged menu while coins, XP, ranks, stats, leaderboards and advancements track their progress.
 
-> **New here?** The [wiki](https://malusic-network.gitbook.io/magickpvp/getting-started) covers installation, configuration and every ability in depth.
+> **New here?** The [wiki](https://magickpvp.wispbyte.org) covers installation, configuration and every ability in depth.
 
 ## Features
 
