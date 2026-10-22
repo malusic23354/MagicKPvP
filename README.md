@@ -10,7 +10,7 @@
 
 [![Version](https://img.shields.io/badge/version-1.2.2-2ea44f)](https://modrinth.com/plugin/magickpvp/versions)
 [![Paper](https://img.shields.io/badge/Paper-1.21.11-222222)](https://papermc.io/)
-[![Java](https://img.shields.io/badge/Java-25-orange?logo=openjdk&logoColor=white)](https://adoptium.net/)
+[![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)](https://adoptium.net/)
 
 </div>
 
@@ -49,18 +49,19 @@ MagicKPvP turns a Paper server into a kit PvP arena. Kits are plain YAML: every 
 - Spawn teleport with countdown, join/respawn teleport and a kit reset on `/spawn`.
 - Arena teleporter with random or menu-based spot selection, restricted to spawn.
 - Kit-item protection and optional non-kit item prevention.
+- Spawn regions flagged with WorldGuard block abilities and projectile launches.
 - SQLite or MySQL storage and live reload with `/magickpvp reload`.
 
 **1. Requirements**
 
 | | |
 | --- | --- |
-| **Server** | [Paper](https://papermc.io/) 1.21.11 or newer (Java 25) |
+| **Server** | [Paper](https://papermc.io/) 1.21.11 or newer. The plugin needs Java 21+; Paper 26.x servers need Java 25+. |
 | **Required** | [Vault](https://www.spigotmc.org/resources/vault.34315/) |
 | **Economy features** | A Vault-compatible economy plugin |
 | **Optional** | [WorldGuard](https://enginehub.org/worldguard), [LuckPerms](https://luckperms.net/), [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/), [Nexo](https://docs.nexomc.com/) |
 
-- **WorldGuard** adds the `magickpvp-spawn` and `magickpvp-kit-switch` region flags.
+- **WorldGuard** adds the `magickpvp-spawn` (blocks abilities and projectile launches) and `magickpvp-kit-switch` region flags.
 - **LuckPerms** is needed for XP ranks.
 - **PlaceholderAPI** exposes the `%magickpvp_...%` placeholders.
 - **Nexo** lets kit items use Nexo items for custom textures.
@@ -205,7 +206,7 @@ The complete list is in the [PlaceholderAPI Reference](https://malusic-network.g
 
 ## Building from source
 
-Requires JDK 25.
+Requires JDK 25 to build; the plugin itself runs on Java 21+.
 
 ```bash
 git clone https://github.com/malusic23354/MagicKPvP.git

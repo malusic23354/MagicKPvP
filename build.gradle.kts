@@ -1,7 +1,6 @@
 plugins {
     kotlin("jvm") version "2.4.0"
     id("com.gradleup.shadow") version "9.4.2"
-    id("io.papermc.paperweight.userdev") version "2.0.0-beta.21"
 }
 
 group = "net.malusic"
@@ -17,7 +16,7 @@ repositories {
 }
 
 dependencies {
-    paperweight.paperDevBundle("26.3.build.+")
+    compileOnly("io.papermc.paper:paper-api:1.21.9-R0.1-SNAPSHOT")
     compileOnly("com.github.MilkBowl:VaultAPI:1.7.1")
     compileOnly("com.zaxxer:HikariCP:6.3.0")
     compileOnly("net.luckperms:api:5.4")
@@ -41,7 +40,7 @@ tasks {
 
     compileJava {
         options.encoding = Charsets.UTF_8.name()
-        options.release.set(25)
+        options.release.set(21)
     }
 
     javadoc {
@@ -67,4 +66,7 @@ tasks {
 
 kotlin {
     jvmToolchain(25)
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21)
+    }
 }

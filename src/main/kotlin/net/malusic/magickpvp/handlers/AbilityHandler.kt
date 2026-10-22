@@ -289,12 +289,27 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
     @EventHandler
     fun onLaunch(event: ProjectileLaunchEvent) {
-        tagProjectile(event.entity, event.entity.shooter as? Player ?: return)
+        val shooter = event.entity.shooter as? Player ?: return
+        if (blockProjectile(shooter)) {
+            event.isCancelled = true
+            return
+        }
+        tagProjectile(event.entity, shooter)
     }
 
     @EventHandler
     fun onPlayerLaunch(event: PlayerLaunchProjectileEvent) {
+        if (blockProjectile(event.player)) {
+            event.isCancelled = true
+            return
+        }
         tagProjectile(event.projectile, event.player)
+    }
+
+    private fun blockProjectile(player: Player): Boolean {
+        if (plugin.combat.abilitiesAllowed(player)) return false
+        notify(player, "projectile", "projectile-blocked")
+        return true
     }
 
     private fun tagProjectile(projectile: Projectile, shooter: Player) {
