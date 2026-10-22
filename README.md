@@ -4,7 +4,7 @@
 
 **Custom kits, unique abilities and progression for Paper PvP servers.**
 
-[![Wiki](https://img.shields.io/badge/Wiki-Read_the_docs-3884FF?logo=gitbook&logoColor=white)](magickpvp.wispbyte.org)
+[![Wiki](https://img.shields.io/badge/Wiki-Read_the_docs-3884FF?logo=gitbook&logoColor=white)](https://magickpvp.wispbyte.org)
 [![Discord](https://img.shields.io/badge/Discord-Join_the_community-5865F2?logo=discord&logoColor=white)](https://discord.gg/mmyqGbKRqQ)
 [![Modrinth](https://img.shields.io/badge/Modrinth-Download-00AF5C?logo=modrinth&logoColor=white)](https://modrinth.com/plugin/magickpvp/)
 
@@ -223,7 +223,7 @@ To run a local test server, place a Paper JAR at `run/paper.jar` and use:
 
 ## Support
 
-- **Documentation:** https://malusic-network.gitbook.io/magickpvp/
+- **Documentation:** https://magickpvp.wispbyte.org
 - **Discord:** https://discord.gg/mmyqGbKRqQ
 - **Downloads:** https://modrinth.com/plugin/magickpvp/
 - **Issues:** https://github.com/malusic23354/MagicKPvP/issues
