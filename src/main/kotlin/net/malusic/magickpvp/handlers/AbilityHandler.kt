@@ -48,13 +48,14 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
 
         add(GuardiansAbility(plugin))
         add(TotemAbility(plugin))
-        add(DecoyAbility(plugin))
         add(BlackHoleAbility(plugin))
         add(ChainLightningAbility(plugin))
         add(DashAbility(plugin))
         add(RewindAbility(plugin))
         add(BloodlustAbility(plugin))
         add(SilenceAbility(plugin))
+
+        VersionAPI.adapter(plugin).extraAbilities(plugin).forEach { add(it) }
     }
 
     fun start() {

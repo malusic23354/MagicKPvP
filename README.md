@@ -9,7 +9,7 @@
 [![Modrinth](https://img.shields.io/badge/Modrinth-Download-00AF5C?logo=modrinth&logoColor=white)](https://modrinth.com/plugin/magickpvp/)
 
 [![Version](https://img.shields.io/badge/version-1.2.2-2ea44f)](https://modrinth.com/plugin/magickpvp/versions)
-[![Paper](https://img.shields.io/badge/Paper-1.21.11-222222)](https://papermc.io/)
+[![Paper](https://img.shields.io/badge/Paper-1.21.8-222222)](https://papermc.io/)
 [![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)](https://adoptium.net/)
 
 </div>
@@ -62,6 +62,7 @@ MagicKPvP turns a Paper server into a kit PvP arena. Kits are plain YAML: every 
 | **Optional** | [WorldGuard](https://enginehub.org/worldguard), [LuckPerms](https://luckperms.net/), [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/), [Nexo](https://docs.nexomc.com/) |
 
 - **WorldGuard** adds the `magickpvp-spawn` (blocks abilities and projectile launches) and `magickpvp-kit-switch` region flags.
+- **1.21.8** uses an ArmorStand decoy; **1.21.9 and newer** use Paper's native Mannequin. Both are included in the same JAR.
 - **LuckPerms** is needed for XP ranks.
 - **PlaceholderAPI** exposes the `%magickpvp_...%` placeholders.
 - **Nexo** lets kit items use Nexo items for custom textures.
@@ -167,6 +168,15 @@ cd MagicKPvP
 ```
 
 The plugin JAR is written to `build/libs/MagicKPvP-VERSION.jar`.
+
+### Multi-version source layout
+
+- `src/main/kotlin` contains the common plugin, compiled against the oldest supported Paper API (1.21.8).
+- `src/versions/1_21_8/Version.kt` contains all 1.21.8-specific code (the ArmorStand decoy fallback).
+- `src/versions/1_21_9/Version.kt` contains all 1.21.9+-specific code (the native Mannequin decoy).
+- `src/main/kotlin/net/malusic/magickpvp/VersionAPI.kt` contains `VersionAPI`, which detects the server version and loads the matching `VersionAdapter` by class name.
+
+To add another version, create `src/versions/<version>/Version.kt`, register a source set and its Paper API dependency in `build.gradle.kts`, implement `VersionAdapter`, and add the new class name to the version range in `VersionAPI`. One file per version is enough; unrelated abilities stay in the common source set.
 
 To run a local test server, place a Paper JAR at `run/paper.jar` and use:
 

@@ -12,7 +12,7 @@ import org.bukkit.event.player.PlayerArmorStandManipulateEvent
 import org.bukkit.event.world.EntitiesLoadEvent
 import java.util.UUID
 
-internal abstract class TrackedDamageListener<T : TrackedDamageListener.Target> : Listener {
+abstract class TrackedDamageListener<T : TrackedDamageListener.Target> : Listener {
 
     interface Target {
         val owner: UUID
