@@ -56,7 +56,7 @@ MagicKPvP turns a Paper server into a kit PvP arena. Kits are plain YAML: every 
 
 | | |
 | --- | --- |
-| **Server** | [Paper](https://papermc.io/) 1.21.11 or newer. The plugin needs Java 21+; Paper 26.x servers need Java 25+. |
+| **Server** | [Paper](https://papermc.io/) 1.21.8 or newer. The plugin needs Java 21+; Paper 26.x servers need Java 25+. |
 | **Required** | [Vault](https://www.spigotmc.org/resources/vault.34315/) |
 | **Economy features** | A Vault-compatible economy plugin |
 | **Optional** | [WorldGuard](https://enginehub.org/worldguard), [LuckPerms](https://luckperms.net/), [PlaceholderAPI](https://www.spigotmc.org/resources/placeholderapi.6245/), [Nexo](https://docs.nexomc.com/) |
@@ -70,7 +70,7 @@ MagicKPvP turns a Paper server into a kit PvP arena. Kits are plain YAML: every 
 
 1. Download the latest release from [Modrinth](https://modrinth.com/plugin/magickpvp/) or [build it from source](#building-from-source).
 2. Install [Vault](https://www.spigotmc.org/resources/vault.34315/) and an economy plugin.
-3. Drop `MagicKPvP-1.2.2.jar` into your server's `plugins/` folder and start the server.
+3. Drop `MagicKPvP-VERSION.jar` into your server's `plugins/` folder and start the server.
 4. Edit the generated files in `plugins/MagicKPvP/`, then run `/magickpvp reload`.
 
 Default files are only written when missing. Delete a file to regenerate it with the current defaults.
@@ -82,7 +82,7 @@ Default files are only written when missing. Delete a file to regenerate it with
 /magickpvp menu
 ```
 
-See the wiki's [Configuration Overview](https://malusic-network.gitbook.io/magickpvp/server-administration/configuration-overview) for every option, and [Creating Kits & Items](https://malusic-network.gitbook.io/magickpvp/kits-and-abilities/creating-kits-and-items) for the full item syntax.
+See the wiki's [Configuration Overview](https://magickpvp.wispbyte.org/#/server-administration/configuration-overview) for every option, and [Creating Kits & Items](https://magickpvp.wispbyte.org/#/kits-and-abilities/creating-kits-and-items) for the full item syntax.
 
 ## Commands
 
@@ -138,42 +138,6 @@ The main command is `/magickpvp`, with `/mkp` as an alias. `/spawn` is a shortcu
 
 </details>
 
-## Ability types
-
-| Type | Trigger | What it does |
-| --- | --- | --- |
-| `potion_effect` | Passive | Keeps `effects` active while the item is held or worn |
-| `flight` | Right click | Grants flight for `duration` and warns before it ends |
-| `radiuseffect` | Hold the item | Applies `effects` in a `circular`, `box` or `sphere` area |
-| `randomized_target` | Right click | Runs commands, messages and particles on a random player in `range` |
-| `projected` | Projectile hit | Runs effects on the player hit by your projectile |
-| `swap` | Right click a player, or projectile hit | Swaps positions with the target |
-| `guardians` | Right click | Summons mobs that follow and fight for you |
-| `totem` | Right click | Places a totem that pulses effects, healing or damage |
-| `decoy` | Right click | Leaves a decoy copy of you and turns you invisible |
-| `blackhole` | Right click | Pulls nearby entities toward the target spot, then bursts them away |
-| `chain_lightning` | Right click or projectile hit | Strikes a target, then jumps to nearby players |
-| `dash` | Right click | Launches you forward, damaging players you pass through |
-| `rewind` | Right click | Returns you to an earlier position and health |
-| `bloodlust` | On kill | Stacks buffs for each kill |
-| `silence` | Right click or projectile hit | Blocks abilities and stops active ones |
-
-Aliases: `radius_effect`, `randomizedtarget`, `black_hole`, `chainlightning`. Full options for each ability are in the [Ability Options](https://malusic-network.gitbook.io/magickpvp/kits-and-abilities/ability-options) page.
-
-## Included kits
-
-The shipped `items.yml` defines seven ready-to-play kits covering every ability type.
-
-| Kit | Playstyle | Abilities |
-| --- | --- | --- |
-| `pyromancer` | Area burn | `radiuseffect`, `potion_effect` |
-| `stormcaller` | Burst and mobility | `chain_lightning`, `dash` |
-| `shadow` | Trickery | `rewind`, `decoy`, `bloodlust` |
-| `summoner` | Summons and support | `guardians`, `totem` |
-| `voidwalker` | Control | `blackhole`, `flight`, `silence` |
-| `trickster` | Utility | `projected`, `silence`, `swap`, `randomized_target` |
-| `warden` | Tank | `radiuseffect`, `potion_effect`, potion item |
-
 ## Configuration files
 
 | File | Contents |
@@ -188,19 +152,7 @@ Missing options are appended automatically on start and `/magickpvp reload`; exi
 
 ## Placeholders
 
-With PlaceholderAPI installed, the plugin registers placeholders such as:
-
-| Placeholder | Value |
-| --- | --- |
-| `%magickpvp_xp%` | XP |
-| `%magickpvp_rank%` | Current rank group |
-| `%magickpvp_kills%`, `%magickpvp_deaths%` | Kills and deaths |
-| `%magickpvp_kdr%` | Kills per death |
-| `%magickpvp_streak%`, `%magickpvp_best_streak%` | Current and best kill streak |
-| `%magickpvp_kit%`, `%magickpvp_kit_name%` | Selected kit ID and name |
-| `%magickpvp_combattag%` | Seconds left of the combat tag |
-| `%magickpvp_cooldown%` | Seconds left on the last used ability |
-| `%magickpvp_top_<stat>_<position>_name%` | Leaderboard name |
+With PlaceholderAPI installed, the plugin registers placeholders:
 
 The complete list is in the [PlaceholderAPI Reference](https://magickpvp.wispbyte.org/#/reference-and-troubleshooting/placeholderapi-reference).
 
@@ -214,7 +166,7 @@ cd MagicKPvP
 ./gradlew build
 ```
 
-The plugin JAR is written to `build/libs/MagicKPvP-1.2.2.jar`.
+The plugin JAR is written to `build/libs/MagicKPvP-VERSION.jar`.
 
 To run a local test server, place a Paper JAR at `run/paper.jar` and use:
 
