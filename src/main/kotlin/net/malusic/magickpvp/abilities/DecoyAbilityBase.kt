@@ -1,14 +1,16 @@
 package net.malusic.magickpvp
 
-import io.papermc.paper.datacomponent.item.ResolvableProfile
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask
 import org.bukkit.Location
 import org.bukkit.Particle
 import org.bukkit.block.BlockFace
-import org.bukkit.entity.Mannequin
+import org.bukkit.configuration.ConfigurationSection
+import org.bukkit.entity.Entity
+import org.bukkit.entity.LivingEntity
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.entity.PlayerDeathEvent
-import io.papermc.paper.threadedregions.scheduler.ScheduledTask
+import org.bukkit.event.player.PlayerArmorStandManipulateEvent
 import org.bukkit.event.world.EntitiesLoadEvent
 import org.bukkit.util.Vector
 import java.util.UUID
@@ -18,12 +20,15 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior, TrackedDamageListener<DecoyAbility.Decoy>() {
+abstract class DecoyAbilityBase(
+    protected val plugin: PluginManager,
+    tempName: String
+) : AbilityBehavior, TrackedDamageListener<DecoyAbilityBase.Decoy>() {
 
     override val key = "decoy"
 
-    internal class Decoy(
-        val npc: Mannequin,
+    class Decoy(
+        val entity: Entity,
         override val owner: UUID,
         override var health: Double,
         val expiresAt: Long,
@@ -38,10 +43,18 @@ internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior
         var ticksLeft = 0
     }
 
-    private val temp = TempEntities(plugin, "decoy")
+    private val temp = TempEntities(plugin, tempName)
     private val byOwner = HashMap<UUID, ArrayList<Decoy>>()
-    private val byNpc = HashMap<UUID, Decoy>()
+    private val byEntity = HashMap<UUID, Decoy>()
     private var mover: ScheduledTask? = null
+
+    protected abstract fun spawnEntity(owner: Player, location: Location): LivingEntity
+
+    private fun spawnDecoy(owner: Player, location: Location, config: ConfigurationSection): Entity {
+        val entity = spawnEntity(owner, location)
+        configure(entity, owner, config)
+        return entity
+    }
 
     override fun activate(context: AbilityContext, ability: Ability, index: Int): Boolean {
         val owner = context.player
@@ -62,31 +75,11 @@ internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior
 
         val spawned = byOwner.computeIfAbsent(owner.uniqueId) { ArrayList() }
         for (i in 0 until amount) {
-            val npc = owner.world.spawn(ringLocation(owner.location, i, amount), Mannequin::class.java) { m ->
-                m.profile = ResolvableProfile.resolvableProfile(owner.playerProfile)
-                m.description = null
-                m.isImmovable = false
-                m.isPersistent = false
-                m.isSilent = true
-                m.setGravity(true)
-                m.mainHand = owner.mainHand
-                val gear = owner.equipment
-                m.equipment.setHelmet(gear.helmet.clone())
-                m.equipment.setChestplate(gear.chestplate.clone())
-                m.equipment.setLeggings(gear.leggings.clone())
-                m.equipment.setBoots(gear.boots.clone())
-                m.equipment.setItemInMainHand(gear.itemInMainHand.clone())
-                m.equipment.setItemInOffHand(gear.itemInOffHand.clone())
-                if (cfg.getBoolean("show-name", true)) {
-                    m.customName(plugin.messages.parse(cfg.getString("name") ?: "{owner}", "owner" to owner.name))
-                    m.isCustomNameVisible = true
-                }
-                m.isGlowing = cfg.getBoolean("glow", false)
-            }
-            temp.mark(npc)
+            val entity = spawnDecoy(owner, ringLocation(owner.location, i, amount), cfg)
+            temp.mark(entity)
 
             val decoy = Decoy(
-                npc = npc,
+                entity = entity,
                 owner = owner.uniqueId,
                 health = health,
                 expiresAt = lifetime,
@@ -97,7 +90,7 @@ internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior
                 interval = interval
             )
             spawned.add(decoy)
-            byNpc[npc.uniqueId] = decoy
+            byEntity[entity.uniqueId] = decoy
         }
         startMover()
 
@@ -113,6 +106,27 @@ internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior
             )
         }
         return true
+    }
+
+    private fun configure(entity: LivingEntity, owner: Player, cfg: ConfigurationSection) {
+        entity.isSilent = true
+        entity.isPersistent = false
+        entity.setGravity(true)
+        entity.isGlowing = cfg.getBoolean("glow", false)
+
+        if (cfg.getBoolean("show-name", true)) {
+            entity.customName(plugin.messages.parse(cfg.getString("name") ?: "{owner}", "owner" to owner.name))
+            entity.isCustomNameVisible = true
+        }
+
+        val gear = owner.equipment
+        val equipment = entity.equipment ?: return
+        equipment.setHelmet(gear.helmet.clone())
+        equipment.setChestplate(gear.chestplate.clone())
+        equipment.setLeggings(gear.leggings.clone())
+        equipment.setBoots(gear.boots.clone())
+        equipment.setItemInMainHand(gear.itemInMainHand.clone())
+        equipment.setItemInOffHand(gear.itemInOffHand.clone())
     }
 
     private fun ringLocation(center: Location, index: Int, amount: Int): Location {
@@ -134,9 +148,9 @@ internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior
         }
         for (list in byOwner.values.toList()) {
             for (decoy in list.toList()) {
-                val npc = decoy.npc
-                if (!npc.isValid) continue
-                if (npc.location.y < npc.world.minHeight - 10.0) {
+                val entity = decoy.entity
+                if (!entity.isValid) continue
+                if (entity.location.y < entity.world.minHeight - 10.0) {
                     remove(decoy, false)
                     continue
                 }
@@ -148,17 +162,17 @@ internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior
                 val radians = Math.toRadians(decoy.yaw.toDouble())
                 val unitX = -sin(radians)
                 val unitZ = cos(radians)
-                var vertical = npc.velocity.y
-                if (npc.isOnGround && blocked(npc.location, unitX, unitZ)) vertical = JUMP_VELOCITY
-                npc.velocity = Vector(unitX * decoy.speed, vertical, unitZ * decoy.speed)
-                npc.setRotation(decoy.yaw, 0f)
+                var vertical = entity.velocity.y
+                if (entity.isOnGround && blocked(entity.location, unitX, unitZ)) vertical = JUMP_VELOCITY
+                entity.velocity = Vector(unitX * decoy.speed, vertical, unitZ * decoy.speed)
+                entity.setRotation(decoy.yaw, 0f)
             }
         }
     }
 
     private fun retarget(decoy: Decoy) {
         val random = ThreadLocalRandom.current()
-        val location = decoy.npc.location
+        val location = decoy.entity.location
         decoy.ticksLeft = decoy.interval
 
         val dx = decoy.origin.x - location.x
@@ -182,7 +196,7 @@ internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior
         val now = System.currentTimeMillis()
         for (list in byOwner.values.toList()) {
             for (decoy in list.toList()) {
-                if (!decoy.npc.isValid || now >= decoy.expiresAt || plugin.server.getPlayer(decoy.owner) == null) {
+                if (!decoy.entity.isValid || now >= decoy.expiresAt || plugin.server.getPlayer(decoy.owner) == null) {
                     remove(decoy, true)
                 }
             }
@@ -194,13 +208,13 @@ internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior
             list.remove(decoy)
             if (list.isEmpty()) byOwner.remove(decoy.owner)
         }
-        byNpc.remove(decoy.npc.uniqueId)
-        if (effect && decoy.npc.isValid) {
-            decoy.npc.world.spawnParticle(
-                Particle.POOF, decoy.npc.location.add(0.0, 1.0, 0.0), 15, 0.3, 0.5, 0.3, 0.03
+        byEntity.remove(decoy.entity.uniqueId)
+        if (effect && decoy.entity.isValid) {
+            decoy.entity.world.spawnParticle(
+                Particle.POOF, decoy.entity.location.add(0.0, 1.0, 0.0), 15, 0.3, 0.5, 0.3, 0.03
             )
         }
-        decoy.npc.remove()
+        decoy.entity.remove()
     }
 
     override fun release(playerId: UUID) {
@@ -214,7 +228,7 @@ internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior
         mover = null
     }
 
-    override fun target(entityId: UUID): Decoy? = byNpc[entityId]
+    override fun target(entityId: UUID): Decoy? = byEntity[entityId]
 
     override fun onKilled(target: Decoy, attacker: Player) {
         target.effects.forEach { it.applyTo(attacker) }
@@ -226,7 +240,12 @@ internal class DecoyAbility(private val plugin: PluginManager) : AbilityBehavior
 
     @EventHandler
     fun onEntitiesLoad(event: EntitiesLoadEvent) {
-        temp.sweep(event.entities) { byNpc.containsKey(it.uniqueId) }
+        temp.sweep(event.entities) { byEntity.containsKey(it.uniqueId) }
+    }
+
+    @EventHandler
+    fun onManipulate(event: PlayerArmorStandManipulateEvent) {
+        if (byEntity.containsKey(event.rightClicked.uniqueId)) event.isCancelled = true
     }
 
     private companion object {
