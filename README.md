@@ -201,7 +201,7 @@ With PlaceholderAPI installed, the plugin registers placeholders such as:
 | `%magickpvp_cooldown%` | Seconds left on the last used ability |
 | `%magickpvp_top_<stat>_<position>_name%` | Leaderboard name |
 
-The complete list is in the [PlaceholderAPI Reference](https://malusic-network.gitbook.io/magickpvp/reference-and-troubleshooting/placeholderapi-reference).
+The complete list is in the [PlaceholderAPI Reference](https://magickpvp.wispbyte.org/#/reference-and-troubleshooting/placeholderapi-reference).
 
 ## Building from source
 
