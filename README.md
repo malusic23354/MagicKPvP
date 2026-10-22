@@ -4,7 +4,7 @@
 
 **Custom kits, unique abilities and progression for Paper PvP servers.**
 
-[![Wiki](https://img.shields.io/badge/Wiki-Read_the_docs-3884FF?logo=gitbook&logoColor=white)](https://malusic-network.gitbook.io/magickpvp/)
+[![Wiki](https://img.shields.io/badge/Wiki-Read_the_docs-3884FF?logo=gitbook&logoColor=white)](https://magickpvp.wispbyte.org)
 [![Discord](https://img.shields.io/badge/Discord-Join_the_community-5865F2?logo=discord&logoColor=white)](https://discord.gg/mmyqGbKRqQ)
 [![Modrinth](https://img.shields.io/badge/Modrinth-Download-00AF5C?logo=modrinth&logoColor=white)](https://modrinth.com/plugin/magickpvp/)
 
@@ -18,7 +18,7 @@
 
 MagicKPvP turns a Paper server into a kit PvP arena. Kits are plain YAML: every item can carry enchantments, attributes, lore, cooldowns and one or more abilities. Players buy, sell and select kits from a paged menu while coins, XP, ranks, stats, leaderboards and advancements track their progress.
 
-> **New here?** The [wiki](https://malusic-network.gitbook.io/magickpvp/getting-started) covers installation, configuration and every ability in depth.
+> **New here?** The [wiki](https://magickpvp.wispbyte.org) covers installation, configuration and every ability in depth.
 
 ## Features
 
@@ -202,7 +202,7 @@ With PlaceholderAPI installed, the plugin registers placeholders such as:
 | `%magickpvp_cooldown%` | Seconds left on the last used ability |
 | `%magickpvp_top_<stat>_<position>_name%` | Leaderboard name |
 
-The complete list is in the [PlaceholderAPI Reference](https://malusic-network.gitbook.io/magickpvp/reference-and-troubleshooting/placeholderapi-reference).
+The complete list is in the [PlaceholderAPI Reference](https://magickpvp.wispbyte.org/#/reference-and-troubleshooting/placeholderapi-reference).
 
 ## Building from source
 
@@ -224,7 +224,7 @@ To run a local test server, place a Paper JAR at `run/paper.jar` and use:
 
 ## Support
 
-- **Documentation:** https://malusic-network.gitbook.io/magickpvp/
+- **Documentation:** https://magickpvp.wispbyte.org
 - **Discord:** https://discord.gg/mmyqGbKRqQ
 - **Downloads:** https://modrinth.com/plugin/magickpvp/
 - **Issues:** https://github.com/malusic23354/MagicKPvP/issues
