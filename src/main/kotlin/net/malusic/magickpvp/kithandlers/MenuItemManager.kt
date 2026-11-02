@@ -50,7 +50,7 @@ class MenuItemManager(private val plugin: PluginManager) : Listener {
 
     private fun build(type: MenuItemType): ItemStack {
         val settings = settings(type)
-        val stack = ItemStack(settings.material)
+        val stack = plugin.itemLoader.icon(settings.material, settings.nexoId, type.id)
         val meta = stack.itemMeta
         meta.displayName(plugin.messages.parse(settings.name))
         if (settings.lore.isNotEmpty()) meta.lore(settings.lore.map { plugin.messages.parse(it) })

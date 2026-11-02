@@ -154,35 +154,69 @@ class ItemLoader(private val plugin: PluginManager) {
         val source = nexoItemSource ?: return
         if (!source.loaded()) return
         for (piece in piecesById.values) {
-            val nexoId = piece.nexoId ?: continue
-            if (!source.exists(nexoId)) {
-                plugin.componentLogger.warn(
-                    "Item '${piece.id}' references Nexo item '$nexoId' which does not exist, it will use its material instead."
-                )
-            }
+            reportMissingNexo(piece.id, piece.nexoId, piece.material)
         }
+        val configuration = plugin.configuration
+        reportMissingNexo("menu-item", configuration.menuItem.nexoId, configuration.menuItem.material)
+        reportMissingNexo("stats-item", configuration.statsItem.nexoId, configuration.statsItem.material)
+        reportMissingNexo(
+            "advancements-item",
+            configuration.advancementsItem.nexoId,
+            configuration.advancementsItem.material
+        )
+        for ((icon, settings) in configuration.statsIcons) {
+            reportMissingNexo("stats-item:${icon.key}", settings.nexoId, settings.material)
+        }
+        for (definition in plugin.advancementLoader.all) {
+            reportMissingNexo(definition.id, definition.nexoIcon, definition.icon)
+        }
+    }
+
+    private fun reportMissingNexo(owner: String, nexoId: String?, fallback: Material) {
+        val source = nexoItemSource ?: return
+        if (nexoId == null || source.exists(nexoId)) return
+        if (!warnedNexo.add(nexoId)) return
+        plugin.componentLogger.warn(
+            "Item '$owner' references Nexo item '$nexoId' which does not exist, it will use $fallback instead."
+        )
+    }
+
+    /**
+     * Builds a single display item, preferring the given Nexo id when it can be built.
+     */
+    fun icon(material: Material, nexoId: String?, owner: String): ItemStack {
+        nexoId?.let { id ->
+            val built = nexoItemSource?.build(id)
+            if (built != null) {
+                built.amount = 1
+                return built
+            }
+            warnUnbuildableNexo(owner, id, material)
+        }
+        return ItemStack(material)
     }
 
     fun build(kit: CustomKit, tagged: Boolean = true): List<ItemStack> = kit.pieces.values.map { build(it, tagged) }
 
     private fun baseStack(custom: CustomItem): ItemStack {
-        val nexoId = custom.nexoId
-        if (nexoId != null) {
-            val built = nexoItemSource?.build(nexoId)
-            if (built != null) {
-                built.amount = custom.amount.coerceIn(1, built.type.maxStackSize)
-                return built
+        val stack = custom.nexoId?.let { nexoId ->
+            nexoItemSource?.build(nexoId) ?: run {
+                warnUnbuildableNexo(custom.id, nexoId, custom.material)
+                null
             }
-            if (nexoId !in warnedNexo) {
-                warnedNexo += nexoId
-                plugin.componentLogger.warn(
-                    "Item '${custom.id}' uses Nexo item '$nexoId' which could not be built" +
-                        (if (nexoItemSource == null) " (Nexo is not installed)" else "") +
-                        ", falling back to ${custom.material}."
-                )
-            }
-        }
-        return ItemStack(custom.material, custom.amount.coerceIn(1, custom.material.maxStackSize))
+        } ?: ItemStack(custom.material)
+        stack.amount = custom.amount.coerceIn(1, stack.type.maxStackSize)
+        return stack
+    }
+
+    private fun warnUnbuildableNexo(owner: String, nexoId: String, fallback: Material) {
+        if (nexoId in warnedNexo) return
+        warnedNexo += nexoId
+        plugin.componentLogger.warn(
+            "Item '$owner' uses Nexo item '$nexoId' which could not be built" +
+                (if (nexoItemSource == null) " (Nexo is not installed)" else "") +
+                ", falling back to $fallback."
+        )
     }
 
     fun build(custom: CustomItem, tagged: Boolean = true): ItemStack {

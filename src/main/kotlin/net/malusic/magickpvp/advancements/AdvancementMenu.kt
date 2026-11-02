@@ -64,7 +64,7 @@ class AdvancementMenu(private val plugin: PluginManager) : Listener {
         val done = entry?.completed == true
         val value = entry?.value ?: 0L
 
-        val stack = ItemStack(definition.icon)
+        val stack = plugin.itemLoader.icon(definition.icon, definition.nexoIcon, definition.id)
         val meta = stack.itemMeta
         meta.displayName(messages.parse(definition.name))
 

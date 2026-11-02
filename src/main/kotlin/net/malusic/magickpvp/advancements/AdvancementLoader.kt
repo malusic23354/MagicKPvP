@@ -59,6 +59,7 @@ class AdvancementLoader(private val plugin: PluginManager) {
                 filter = entry.getString("filter")?.trim()?.lowercase()?.takeIf { it.isNotEmpty() },
                 icon = entry.getString("icon")?.let { Material.matchMaterial(it) }
                     ?.takeIf { it.isItem && !it.isAir } ?: Material.PAPER,
+                nexoIcon = entry.getString("nexo")?.trim()?.takeIf { it.isNotEmpty() },
                 reward = reward
             )
         }
@@ -66,6 +67,7 @@ class AdvancementLoader(private val plugin: PluginManager) {
         all = parsed
         byId = parsed.associateBy { it.id }
         byType = parsed.groupBy { it.type }
+        plugin.itemLoader.validateNexo()
     }
 }
 
@@ -100,6 +102,7 @@ data class AdvancementDefinition(
     val target: Long,
     val filter: String?,
     val icon: Material,
+    val nexoIcon: String? = null,
     val reward: AdvancementReward
 )
 
