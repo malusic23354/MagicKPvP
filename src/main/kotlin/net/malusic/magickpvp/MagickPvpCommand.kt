@@ -23,6 +23,7 @@ class MagickPvpCommand(private val plugin: PluginManager) {
             plugin.messages.send(ctx.source.sender, "usage")
             1
         }
+        .then(helpNode())
         .then(menuNode())
         .then(reloadNode())
         .then(infoNode())
@@ -54,6 +55,22 @@ class MagickPvpCommand(private val plugin: PluginManager) {
             1
         }
         .build()
+
+    private fun helpNode() = Commands.literal("help")
+        .executes { ctx ->
+            showHelp(ctx.source.sender)
+            1
+        }
+
+    private fun showHelp(sender: CommandSender) {
+        val messages = plugin.messages
+        messages.send(sender, "help-header")
+        HELP_ENTRIES
+            .filter { (_, permission, _) -> sender.hasPermission(permission) }
+            .forEach { (sub, _, description) ->
+                sender.sendMessage(messages.parse("<gray>/magickpvp <gold>$sub <dark_gray>- <white>$description"))
+            }
+    }
 
     private fun menuNode() = Commands.literal("menu")
         .requires { it.sender.hasPermission("magickpvp.menu") }
@@ -488,6 +505,23 @@ class MagickPvpCommand(private val plugin: PluginManager) {
     }
 
     private companion object {
+        val HELP_ENTRIES = listOf(
+            Triple("help", "magickpvp.command", "Show this list of sub commands"),
+            Triple("menu", "magickpvp.menu", "Open the kit menu"),
+            Triple("reload", "magickpvp.reload", "Reload all configs"),
+            Triple("info", "magickpvp.info", "Show plugin information"),
+            Triple("advancements", "magickpvp.advancements", "Open the advancements menu"),
+            Triple("spawn", "magickpvp.spawn", "Teleport to spawn"),
+            Triple("setspawn", "magickpvp.setspawn", "Set the spawn point"),
+            Triple("select", "magickpvp.select", "Select an owned kit"),
+            Triple("buy", "magickpvp.buy", "Buy a kit"),
+            Triple("sell", "magickpvp.sell", "Sell a kit"),
+            Triple("xp", "magickpvp.xp", "Show your XP or manage a player's XP"),
+            Triple("stats", "magickpvp.stats", "Show player stats"),
+            Triple("top", "magickpvp.top", "Show the top players by a stat"),
+            Triple("kitusage", "magickpvp.kitusage", "Show kit purchase usage"),
+            Triple("arena", "magickpvp.arena", "Join or manage arena spots")
+        )
         const val OPTIONS = "options"
         const val KIT = "kit"
         const val TARGET = "player"

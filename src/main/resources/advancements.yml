@@ -1,5 +1,7 @@
 enabled: true
 
+# Set 'nexo' on an advancement to use a Nexo item id for its icon.
+# When set (and Nexo is installed), 'nexo' replaces 'icon'.
 advancements:
   first-blood:
     name: "<red>First Blood"

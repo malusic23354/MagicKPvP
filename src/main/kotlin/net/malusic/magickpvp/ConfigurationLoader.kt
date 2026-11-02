@@ -53,6 +53,7 @@ data class MenuItemSettings(
     val enabled: Boolean = true,
     val slot: Int = 4,
     val material: Material = Material.NETHER_STAR,
+    val nexoId: String? = null,
     val name: String = "<gold>Kit Selector",
     val lore: List<String> = emptyList(),
     val glow: Boolean = true
@@ -61,6 +62,21 @@ data class MenuItemSettings(
 data class StatsSettings(
     val leaderboardSize: Int = 10,
     val refreshSeconds: Int = 60
+)
+
+enum class StatsIcon(val key: String, val defaultMaterial: Material) {
+    XP("xp", Material.EXPERIENCE_BOTTLE),
+    KILLS("kills", Material.IRON_SWORD),
+    DEATHS("deaths", Material.SKELETON_SKULL),
+    KDR("kdr", Material.COMPASS),
+    STREAK("streak", Material.BLAZE_POWDER),
+    BEST_STREAK("best-streak", Material.NETHER_STAR),
+    ADVANCEMENTS("advancements", Material.KNOWLEDGE_BOOK)
+}
+
+data class StatsIconSettings(
+    val material: Material,
+    val nexoId: String? = null
 )
 
 enum class CombatLogMode { OFF, DEATH, REDUCTION }
@@ -154,6 +170,8 @@ class ConfigurationLoader(private val plugin: PluginManager) {
     var advancementsItem: MenuItemSettings = ADVANCEMENTS_ITEM_DEFAULTS
         private set
     var statsSettings: StatsSettings = StatsSettings()
+        private set
+    var statsIcons: Map<StatsIcon, StatsIconSettings> = defaultStatsIcons()
         private set
     var cooldownDisplay: CooldownDisplaySettings = CooldownDisplaySettings()
         private set
@@ -287,6 +305,16 @@ class ConfigurationLoader(private val plugin: PluginManager) {
             refreshSeconds = cfg.getInt("stats.leaderboard-refresh-seconds", 60).coerceIn(5, 3600)
         )
 
+        statsIcons = StatsIcon.entries.associateWith { icon ->
+            val path = "stats.items.${icon.key}"
+            StatsIconSettings(
+                material = cfg.getString("$path.material")
+                    ?.let { Material.matchMaterial(it) }
+                    ?.takeIf { it.isItem && !it.isAir } ?: icon.defaultMaterial,
+                nexoId = cfg.getString("$path.nexo")?.trim()?.takeIf { it.isNotEmpty() }
+            )
+        }
+
         cooldownDisplay = CooldownDisplaySettings(
             enabled = cfg.getBoolean("cooldown-display.enabled", true),
             mode = when (cfg.getString("cooldown-display.mode")?.trim()?.lowercase()) {
@@ -363,12 +391,16 @@ class ConfigurationLoader(private val plugin: PluginManager) {
         )
     }
 
+    private fun defaultStatsIcons(): Map<StatsIcon, StatsIconSettings> =
+        StatsIcon.entries.associateWith { StatsIconSettings(it.defaultMaterial) }
+
     private fun menuItemSettings(cfg: YamlConfiguration, path: String, defaults: MenuItemSettings) = MenuItemSettings(
         enabled = cfg.getBoolean("$path.enabled", defaults.enabled),
         slot = cfg.getInt("$path.slot", defaults.slot).coerceIn(0, 35),
         material = cfg.getString("$path.material")
             ?.let { Material.matchMaterial(it) }
             ?.takeIf { it.isItem && !it.isAir } ?: defaults.material,
+        nexoId = cfg.getString("$path.nexo")?.trim()?.takeIf { it.isNotEmpty() },
         name = cfg.getString("$path.name") ?: defaults.name,
         lore = if (cfg.isList("$path.lore")) cfg.getStringList("$path.lore") else defaults.lore,
         glow = cfg.getBoolean("$path.glow", defaults.glow)

@@ -125,6 +125,10 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         if (custom.abilities.any { registry.get(it.type)?.freeActivation(player) == true }) return
         lastUsed[player.uniqueId] = itemId
         plugin.advancements.abilityUsed(player, itemId, custom)
+        applyCooldown(player, itemId, custom)
+    }
+
+    fun applyCooldown(player: Player, itemId: String, custom: CustomItem) {
         if (custom.cooldownTicks <= 0L) return
         val ticks = (custom.cooldownTicks * (100 - cooldownReduction(player)) / 100L).coerceAtLeast(1L)
         cooldowns.getOrPut(player.uniqueId) { ConcurrentHashMap() }[itemId] =

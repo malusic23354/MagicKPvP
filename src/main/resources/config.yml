@@ -60,6 +60,8 @@ stats-item:
   enabled: true
   slot: 0
   material: BOOK
+  # Optional Nexo item id. When set (and Nexo is installed) it replaces the material.
+  #nexo: ""
   name: "<aqua>Your Stats"
   glow: false
   lore:
@@ -69,6 +71,8 @@ menu-item:
   enabled: true
   slot: 4
   material: NETHER_STAR
+  # Optional Nexo item id. When set (and Nexo is installed) it replaces the material.
+  #nexo: ""
   name: "<gold>Kit Selector"
   glow: true
   lore:
@@ -78,6 +82,8 @@ advancements-item:
   enabled: true
   slot: 8
   material: KNOWLEDGE_BOOK
+  # Optional Nexo item id. When set (and Nexo is installed) it replaces the material.
+  #nexo: ""
   name: "<green>Advancements"
   glow: false
   lore:
@@ -86,6 +92,29 @@ advancements-item:
 stats:
   leaderboard-size: 10
   leaderboard-refresh-seconds: 60
+  # Icons used by the stats menu. Set 'nexo' to use a Nexo item instead of 'material'.
+  items:
+    xp:
+      material: EXPERIENCE_BOTTLE
+      #nexo: ""
+    kills:
+      material: IRON_SWORD
+      #nexo: ""
+    deaths:
+      material: SKELETON_SKULL
+      #nexo: ""
+    kdr:
+      material: COMPASS
+      #nexo: ""
+    streak:
+      material: BLAZE_POWDER
+      #nexo: ""
+    best-streak:
+      material: NETHER_STAR
+      #nexo: ""
+    advancements:
+      material: KNOWLEDGE_BOOK
+      #nexo: ""
 
 non-kit-item-prevention:
   enabled: false

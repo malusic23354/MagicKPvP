@@ -8,7 +8,7 @@
 [![Discord](https://img.shields.io/badge/Discord-Join_the_community-5865F2?logo=discord&logoColor=white)](https://discord.gg/mmyqGbKRqQ)
 [![Modrinth](https://img.shields.io/badge/Modrinth-Download-00AF5C?logo=modrinth&logoColor=white)](https://modrinth.com/plugin/magickpvp/)
 
-[![Version](https://img.shields.io/badge/version-1.2.2-2ea44f)](https://modrinth.com/plugin/magickpvp/versions)
+[![Version](https://img.shields.io/badge/version-1.2.3-2ea44f)](https://modrinth.com/plugin/magickpvp/versions)
 [![Paper](https://img.shields.io/badge/Paper-1.21.8-222222)](https://papermc.io/)
 [![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)](https://adoptium.net/)
 
@@ -28,7 +28,7 @@ MagicKPvP turns a Paper server into a kit PvP arena. Kits are plain YAML: every 
 - [15 ability types](#ability-types): auras, dashes, summons, totems, decoys, black holes, chain lightning, rewinds, silences and more.
 - Per-player item cooldowns (`10s`, `500ms`, `2m`), optional permission-based reduction and an action-bar countdown.
 - Optional XP and kill requirements before a kit can be bought.
-- [Nexo](https://docs.nexomc.com/) item support for custom textures and models.
+- [Nexo](https://docs.nexomc.com/) item support for custom textures and models on kit items, spawn selector items, stats menu icons and advancement menu icons.
 
 **Economy and progression**
 
@@ -65,13 +65,13 @@ MagicKPvP turns a Paper server into a kit PvP arena. Kits are plain YAML: every 
 - **1.21.8** uses an ArmorStand decoy; **1.21.9 and newer** use Paper's native Mannequin. Both are included in the same JAR.
 - **LuckPerms** is needed for XP ranks.
 - **PlaceholderAPI** exposes the `%magickpvp_...%` placeholders.
-- **Nexo** lets kit items use Nexo items for custom textures.
+- **Nexo** lets kit items, the spawn selector items, stats menu icons and advancement menu icons use Nexo items for custom textures. Set the `nexo` option next to `material` (or `icon`) to a Nexo item id.
 
 **2. Installation**
 
 1. Download the latest release from [Modrinth](https://modrinth.com/plugin/magickpvp/) or [build it from source](#building-from-source).
 2. Install [Vault](https://www.spigotmc.org/resources/vault.34315/) and an economy plugin.
-3. Drop `MagicKPvP-1.2.2.jar` into your server's `plugins/` folder and start the server.
+3. Drop `MagicKPvP-1.2.3.jar` into your server's `plugins/` folder and start the server.
 4. Edit the generated files in `plugins/MagicKPvP/`, then run `/magickpvp reload`.
 
 Default files are only written when missing. Delete a file to regenerate it with the current defaults.
@@ -215,7 +215,7 @@ cd MagicKPvP
 ./gradlew build
 ```
 
-The plugin JAR is written to `build/libs/MagicKPvP-1.2.2.jar`.
+The plugin JAR is written to `build/libs/MagicKPvP-version.jar` or `run/plugins/MagicKPvP-version.jar` using shadowJar.
 
 ### Multi-version source layout
 
