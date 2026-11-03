@@ -1,10 +1,36 @@
 plugins {
     kotlin("jvm") version "2.4.0"
     id("com.gradleup.shadow") version "9.4.2"
+    id("com.modrinth.minotaur") version "2.10.0"
 }
 
 group = "net.malusic"
-version = "1.2.3"
+version = file("src/main/resources/paper-plugin.yml")
+    .readLines()
+    .first { it.startsWith("version:") }
+    .substringAfter(":")
+    .trim()
+    .trim('"', '\'')
+
+modrinth {
+    token.set(providers.gradleProperty("modrinthToken"))
+    projectId.set("DXEVhnsR")
+    versionNumber.set(project.version.toString())
+    versionType.set("release")
+    uploadFile.set(tasks.shadowJar)
+    gameVersions.addAll(listOf(
+        "1.21.8", "1.21.9", "1.21.10", "1.21.11",
+        "26.1", "26.2", "26.3"
+    ))
+    loaders.add("paper")
+    loaders.add("purpur")
+    dependencies {
+        required.project("ayRaM8J7")
+        optional.project("lKEzGugV")
+        optional.project("Vebnzrzj")
+        optional.project("DKY9btbd")
+    }
+}
 
 repositories {
     mavenCentral()
