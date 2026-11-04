@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     kotlin("jvm") version "2.4.0"
     id("com.gradleup.shadow") version "9.4.2"
@@ -13,7 +15,7 @@ version = file("src/main/resources/paper-plugin.yml")
     .trim('"', '\'')
 
 fun changelogFor(version: String): String {
-    val changelog = file("CHANGELOG.md")
+    val changelog = file("changelog.md")
     if (!changelog.exists()) return "No changelog was specified."
 
     val lines = changelog.readLines()
@@ -25,6 +27,20 @@ fun changelogFor(version: String): String {
 
     return lines.subList(start + 1, end).joinToString("\n").trim()
 }
+
+val localTokenFile = file(".gradle/gradle.properties")
+val localToken = if (localTokenFile.exists()) {
+    Properties()
+        .apply { localTokenFile.inputStream().use { load(it) } }
+        .getProperty("modrinthToken")
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+} else {
+    null
+}
+
+val modrinthToken = providers.gradleProperty("modrinthToken")
+    .let { provider -> if (localToken != null) provider.orElse(localToken) else provider }
 
 modrinth {
     token.set(providers.gradleProperty("modrinthToken"))
@@ -44,6 +60,17 @@ modrinth {
         optional.project("lKEzGugV")
         optional.project("Vebnzrzj")
         optional.project("DKY9btbd")
+    }
+}
+
+tasks.named("modrinth") {
+    doFirst {
+        if (!modrinthToken.isPresent) {
+            throw GradleException(
+                "No Modrinth token found. Add 'modrinthToken=<token>' to " +
+                        File(gradle.gradleUserHomeDir, "gradle.properties")
+            )
+        }
     }
 }
 

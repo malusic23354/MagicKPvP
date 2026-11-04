@@ -19,7 +19,7 @@ class PlaceholderHook(private val plugin: PluginManager) : PlaceholderExpansion(
         val key = params.lowercase(Locale.ROOT)
         if (key.startsWith("top_")) return top(key.removePrefix("top_"))
         if (key.startsWith("cooldown_") && key != "cooldown_reduction") {
-            val target = player ?: return "0"
+            val target = player ?: return ""
             return cooldown(target.uniqueId, params.substring("cooldown_".length))
         }
 
@@ -33,7 +33,7 @@ class PlaceholderHook(private val plugin: PluginManager) : PlaceholderExpansion(
             "xp" -> xp.toString()
             "rank" -> ranks?.rankFor(xp)?.group.orEmpty()
             "next_rank" -> ranks?.nextRank(xp)?.group.orEmpty()
-            "xp_needed" -> ranks?.nextRank(xp)?.xp?.toString() ?: "0"
+            "xp_needed" -> ranks?.nextRank(xp)?.xp?.toString().orEmpty()
             "kills" -> plugin.stats.kills(uuid).toString()
             "deaths" -> plugin.stats.deaths(uuid).toString()
             "streak" -> plugin.stats.streak(uuid).toString()
@@ -43,14 +43,14 @@ class PlaceholderHook(private val plugin: PluginManager) : PlaceholderExpansion(
             "kit_name" -> online?.let { plugin.kits.activeKitId(it) }
                 ?.let { id -> plugin.itemLoader.get(id)?.let { plugin.messages.plain(it.name) } } ?: "None"
             "cooldown" -> ((plugin.abilities.lastCooldownLeft(uuid) + 999L) / 1000L).toString()
-            "cooldown_reduction" -> (online?.let { plugin.abilities.cooldownReduction(it) } ?: 0).toString()
-            "combattag" -> (online?.let { plugin.combat.remainingSeconds(it) } ?: 0).toString()
+            "cooldown_reduction" -> online?.let { plugin.abilities.cooldownReduction(it).toString() }.orEmpty()
+            "combattag" -> online?.let { plugin.combat.remainingSeconds(it).toString() }.orEmpty()
             else -> null
         }
     }
 
     private fun cooldown(uuid: UUID, rawId: String): String {
-        val id = plugin.itemLoader.piece(rawId)?.id ?: return "0"
+        val id = plugin.itemLoader.piece(rawId)?.id ?: return ""
         return ((plugin.abilities.cooldownLeft(uuid, id) + 999L) / 1000L).toString()
     }
 
@@ -60,8 +60,8 @@ class PlaceholderHook(private val plugin: PluginManager) : PlaceholderExpansion(
         val position = parts[1].toIntOrNull() ?: return null
         val entry = plugin.stats.top(parts[0]).getOrNull(position - 1)
         return when (parts[2]) {
-            "name" -> entry?.let { plugin.server.getOfflinePlayer(it.uuid).name } ?: "-"
-            "value" -> (entry?.value ?: 0L).toString()
+            "name" -> entry?.let { plugin.server.getOfflinePlayer(it.uuid).name }.orEmpty()
+            "value" -> entry?.value?.toString().orEmpty()
             else -> null
         }
     }
@@ -77,8 +77,8 @@ class PlaceholderHook(private val plugin: PluginManager) : PlaceholderExpansion(
             } else {
                 plugin.componentLogger.warn(
                     "PlaceholderAPI expansion '$IDENTIFIER' did not register: an expansion with that " +
-                        "identifier is already present, or the ExpansionRegisterEvent was cancelled. " +
-                        "Run /papi list to check, then restart the server."
+                            "identifier is already present, or the ExpansionRegisterEvent was cancelled. " +
+                            "Run /papi list to check, then restart the server."
                 )
             }
             return registered
