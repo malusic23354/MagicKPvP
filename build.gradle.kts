@@ -39,11 +39,8 @@ val localToken = if (localTokenFile.exists()) {
     null
 }
 
-val modrinthToken = providers.gradleProperty("modrinthToken")
-    .let { provider -> if (localToken != null) provider.orElse(localToken) else provider }
-
 modrinth {
-    token.set(providers.gradleProperty("modrinthToken"))
+    token.set(localToken)
     projectId.set("DXEVhnsR")
     versionNumber.set(project.version.toString())
     versionType.set("release")
@@ -60,17 +57,6 @@ modrinth {
         optional.project("lKEzGugV")
         optional.project("Vebnzrzj")
         optional.project("DKY9btbd")
-    }
-}
-
-tasks.named("modrinth") {
-    doFirst {
-        if (!modrinthToken.isPresent) {
-            throw GradleException(
-                "No Modrinth token found. Add 'modrinthToken=<token>' to " +
-                        File(gradle.gradleUserHomeDir, "gradle.properties")
-            )
-        }
     }
 }
 
