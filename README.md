@@ -8,7 +8,7 @@
 [![Discord](https://img.shields.io/badge/Discord-Join_the_community-5865F2?logo=discord&logoColor=white)](https://discord.gg/mmyqGbKRqQ)
 [![Modrinth](https://img.shields.io/badge/Modrinth-Download-00AF5C?logo=modrinth&logoColor=white)](https://modrinth.com/plugin/magickpvp/)
 
-[![Version](https://img.shields.io/badge/version-1.2.3-2ea44f)](https://modrinth.com/plugin/magickpvp/versions)
+[![Version](https://img.shields.io/badge/version-1.2.4-2ea44f)](https://modrinth.com/plugin/magickpvp/versions)
 [![Paper](https://img.shields.io/badge/Paper-1.21.8-222222)](https://papermc.io/)
 [![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk&logoColor=white)](https://adoptium.net/)
 
@@ -41,7 +41,7 @@ MagicKPvP turns a Paper server into a kit PvP arena. Kits are plain YAML: every 
 
 - Kit selector, stats and advancements items given on join and respawn, protected from dropping and storing.
 - Configurable menu size, pages, border decoration, and per-kit slot and lore.
-- Left click to buy or select, right click to preview an unowned kit or sell an owned one.
+- Left click to buy or select, right click to preview an unowned kit or open a sell confirmation for an owned one. The confirm screen's accept and cancel buttons are configurable and support Nexo items.
 
 **Server control**
 
@@ -71,7 +71,7 @@ MagicKPvP turns a Paper server into a kit PvP arena. Kits are plain YAML: every 
 
 1. Download the latest release from [Modrinth](https://modrinth.com/plugin/magickpvp/) or [build it from source](#building-from-source).
 2. Install [Vault](https://www.spigotmc.org/resources/vault.34315/) and an economy plugin.
-3. Drop `MagicKPvP-1.2.3.jar` into your server's `plugins/` folder and start the server.
+3. Drop `MagicKPvP-1.2.4.jar` into your server's `plugins/` folder and start the server.
 4. Edit the generated files in `plugins/MagicKPvP/`, then run `/magickpvp reload`.
 
 Default files are only written when missing. Delete a file to regenerate it with the current defaults.
@@ -107,6 +107,7 @@ The main command is `/magickpvp`, with `/mkp` as an alias. `/spawn` is a shortcu
 | `/magickpvp arena` | Open the arena menu or teleport to a random spot | `magickpvp.arena` |
 | `/magickpvp arena <set\|add\|remove> <name> ...` | Manage arena spots | `magickpvp.arena.admin` |
 | `/magickpvp reload` | Reload all configuration files | `magickpvp.reload` |
+| `/magickpvp reset confirm` | Erase all plugin data (kits, XP, stats, advancements, kit usage). Without `confirm` it only prints a warning | `magickpvp.reset` |
 
 ## Permissions
 
@@ -120,6 +121,7 @@ The main command is `/magickpvp`, with `/mkp` as an alias. `/spawn` is a shortcu
 | `magickpvp.select` | Everyone | Select owned kits |
 | `magickpvp.buy` | Everyone | Buy kits |
 | `magickpvp.sell` | Everyone | Sell purchased kits |
+| `magickpvp.reset` | Operators | Erase all plugin data |
 | `magickpvp.info` | Everyone | View plugin information |
 | `magickpvp.xp` | Everyone | View your own XP |
 | `magickpvp.xp.admin` | Operators | Change player XP |
@@ -179,7 +181,7 @@ The shipped `items.yml` defines seven ready-to-play kits covering every ability 
 
 | File | Contents |
 | --- | --- |
-| `config.yml` | Menu, arena mode, spawn, storage, rewards, ranks, combat, cooldowns and item protection |
+| `config.yml` | Menu, arena mode, spawn, storage, rewards, ranks, combat, cooldowns, item protection and the sell confirmation screen |
 | `items.yml` | Kits, items and abilities; each top-level key is a kit ID |
 | `arena.yml` | Arena teleport spots |
 | `advancements.yml` | Advancements and their rewards |

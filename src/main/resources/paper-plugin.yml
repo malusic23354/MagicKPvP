@@ -40,6 +40,9 @@ permissions:
   magickpvp.sell:
     description: Allows selling purchased kits.
     default: true
+  magickpvp.reset:
+    description: Allows erasing all plugin data.
+    default: op
   magickpvp.info:
     description: Allows viewing plugin info.
     default: true

@@ -126,6 +126,27 @@ kit-usage:
   enabled: true
   page-size: 10
 
+sell-confirmation:
+  enabled: true
+  title: "<dark_gray>Sell {kit}?"
+  info-slot: 13
+  accept:
+    slot: 11
+    material: LIME_DYE
+    # Optional Nexo item id. When set (and Nexo is installed) it replaces the material.
+    #nexo: ""
+    name: "<green>Confirm sale"
+    lore:
+      - "<gray>Sell this kit for <gold>{price}<gray>."
+  cancel:
+    slot: 15
+    material: RED_DYE
+    # Optional Nexo item id. When set (and Nexo is installed) it replaces the material.
+    #nexo: ""
+    name: "<red>Cancel"
+    lore:
+      - "<gray>Keep this kit."
+
 cooldown-display:
   enabled: true
   mode: held

@@ -233,7 +233,11 @@ class KitMenu(private val plugin: PluginManager) : Listener {
             return
         }
         MenuSupport.later(plugin) {
-            if (plugin.kits.sell(player, kitId) == KitResult.SUCCESS) open(player, page)
+            if (plugin.sellConfirm.enabled) {
+                plugin.sellConfirm.open(player, kitId, page)
+            } else if (plugin.kits.sell(player, kitId) == KitResult.SUCCESS) {
+                open(player, page)
+            }
         }
     }
 

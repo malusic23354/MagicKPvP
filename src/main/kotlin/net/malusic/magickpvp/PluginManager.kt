@@ -31,6 +31,8 @@ class PluginManager : JavaPlugin() {
         private set
     lateinit var advancementMenu: AdvancementMenu
         private set
+    lateinit var sellConfirm: SellConfirmMenu
+        private set
     lateinit var combat: CombatManager
         private set
     lateinit var abilities: AbilityHandler
@@ -81,6 +83,7 @@ class PluginManager : JavaPlugin() {
         advancementLoader = AdvancementLoader(this)
         advancements = AdvancementManager(this)
         advancementMenu = AdvancementMenu(this)
+        sellConfirm = SellConfirmMenu(this)
         combat = CombatManager(this)
         abilities = AbilityHandler(this)
         kitMenu = KitMenu(this)
@@ -130,7 +133,7 @@ class PluginManager : JavaPlugin() {
         val listeners = listOf(
             data, spawn, abilities, kits, kitMenu, menuItem, experience, stats,
             statsMenu, advancements, advancementMenu, rewards, combat, protection,
-            nonKitItems, combatLog, arenaMenu
+            nonKitItems, combatLog, arenaMenu, sellConfirm
         )
         for (listener in listeners) {
             server.pluginManager.registerEvents(listener, this)
@@ -157,7 +160,7 @@ class PluginManager : JavaPlugin() {
             } catch (failure: Throwable) {
                 componentLogger.warn(
                     "Could not register the PlaceholderAPI expansion (is PlaceholderAPI's API visible " +
-                        "to this Paper plugin?): ${failure.message}",
+                            "to this Paper plugin?): ${failure.message}",
                     failure
                 )
             }

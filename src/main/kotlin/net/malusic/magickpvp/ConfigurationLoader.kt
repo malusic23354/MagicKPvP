@@ -189,6 +189,8 @@ class ConfigurationLoader(private val plugin: PluginManager) {
         private set
     var combatLog: CombatLogSettings = CombatLogSettings()
         private set
+    var sellConfirm: SellConfirmSettings = SellConfirmSettings()
+        private set
 
     fun load() {
         MissingKeyWriter.sync(plugin, "config.yml")
@@ -389,6 +391,8 @@ class ConfigurationLoader(private val plugin: PluginManager) {
             enabled = cfg.getBoolean("kit-usage.enabled", usageDefaults.enabled),
             pageSize = cfg.getInt("kit-usage.page-size", usageDefaults.pageSize).coerceIn(1, 50)
         )
+
+        sellConfirm = SellConfirmSettings.from(cfg)
     }
 
     private fun defaultStatsIcons(): Map<StatsIcon, StatsIconSettings> =

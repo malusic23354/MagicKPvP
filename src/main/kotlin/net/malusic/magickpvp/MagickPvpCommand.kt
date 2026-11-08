@@ -46,6 +46,7 @@ class MagickPvpCommand(private val plugin: PluginManager) {
         .then(topNode())
         .then(kitUsageNode())
         .then(arenaNode())
+        .then(resetNode())
         .build()
 
     fun buildSpawn(): LiteralCommandNode<CommandSourceStack> = Commands.literal("spawn")
@@ -309,6 +310,31 @@ class MagickPvpCommand(private val plugin: PluginManager) {
                 )
         )
 
+    private fun resetNode() = Commands.literal("reset")
+        .requires { it.sender.hasPermission("magickpvp.reset") }
+        .executes { ctx ->
+            plugin.messages.send(ctx.source.sender, "reset-warning")
+            1
+        }
+        .then(
+            Commands.literal("confirm")
+                .executes { ctx ->
+                    handleReset(ctx.source.sender)
+                    1
+                }
+        )
+
+    private fun handleReset(sender: CommandSender) {
+        if (!plugin.data.isOpen) {
+            plugin.messages.send(sender, "storage-error")
+            return
+        }
+        plugin.data.write { it.reset() }
+        plugin.kitUsage.load()
+        plugin.server.onlinePlayers.forEach { plugin.data.preload(it.uniqueId) }
+        plugin.messages.send(sender, "reset-done")
+    }
+
     private fun teleportToSpawn(sender: CommandSender) {
         val player = sender as? Player
         if (player == null) {
@@ -520,7 +546,8 @@ class MagickPvpCommand(private val plugin: PluginManager) {
             Triple("stats", "magickpvp.stats", "Show player stats"),
             Triple("top", "magickpvp.top", "Show the top players by a stat"),
             Triple("kitusage", "magickpvp.kitusage", "Show kit purchase usage"),
-            Triple("arena", "magickpvp.arena", "Join or manage arena spots")
+            Triple("arena", "magickpvp.arena", "Join or manage arena spots"),
+            Triple("reset", "magickpvp.reset", "Erase all plugin data")
         )
         const val OPTIONS = "options"
         const val KIT = "kit"

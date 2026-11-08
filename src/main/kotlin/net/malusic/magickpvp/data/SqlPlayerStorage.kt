@@ -43,55 +43,55 @@ class SqlPlayerStorage private constructor(
     private val addKillSql = when (type) {
         StorageType.SQLITE ->
             "INSERT INTO $STATS (uuid, kills, deaths, best_streak) VALUES (?, 1, 0, 0) " +
-                "ON CONFLICT(uuid) DO UPDATE SET kills = kills + 1"
+                    "ON CONFLICT(uuid) DO UPDATE SET kills = kills + 1"
         StorageType.MYSQL ->
             "INSERT INTO $STATS (uuid, kills, deaths, best_streak) VALUES (?, 1, 0, 0) " +
-                "ON DUPLICATE KEY UPDATE kills = kills + 1"
+                    "ON DUPLICATE KEY UPDATE kills = kills + 1"
     }
 
     private val addDeathSql = when (type) {
         StorageType.SQLITE ->
             "INSERT INTO $STATS (uuid, kills, deaths, best_streak) VALUES (?, 0, 1, 0) " +
-                "ON CONFLICT(uuid) DO UPDATE SET deaths = deaths + 1"
+                    "ON CONFLICT(uuid) DO UPDATE SET deaths = deaths + 1"
         StorageType.MYSQL ->
             "INSERT INTO $STATS (uuid, kills, deaths, best_streak) VALUES (?, 0, 1, 0) " +
-                "ON DUPLICATE KEY UPDATE deaths = deaths + 1"
+                    "ON DUPLICATE KEY UPDATE deaths = deaths + 1"
     }
 
     private val setBestStreakSql = when (type) {
         StorageType.SQLITE ->
             "INSERT INTO $STATS (uuid, kills, deaths, best_streak) VALUES (?, 0, 0, ?) " +
-                "ON CONFLICT(uuid) DO UPDATE SET best_streak = excluded.best_streak"
+                    "ON CONFLICT(uuid) DO UPDATE SET best_streak = excluded.best_streak"
         StorageType.MYSQL ->
             "INSERT INTO $STATS (uuid, kills, deaths, best_streak) VALUES (?, 0, 0, ?) " +
-                "ON DUPLICATE KEY UPDATE best_streak = VALUES(best_streak)"
+                    "ON DUPLICATE KEY UPDATE best_streak = VALUES(best_streak)"
     }
 
     private val setStreakSql = when (type) {
         StorageType.SQLITE ->
             "INSERT INTO $STATS (uuid, kills, deaths, best_streak, streak) VALUES (?, 0, 0, 0, ?) " +
-                "ON CONFLICT(uuid) DO UPDATE SET streak = excluded.streak"
+                    "ON CONFLICT(uuid) DO UPDATE SET streak = excluded.streak"
         StorageType.MYSQL ->
             "INSERT INTO $STATS (uuid, kills, deaths, best_streak, streak) VALUES (?, 0, 0, 0, ?) " +
-                "ON DUPLICATE KEY UPDATE streak = VALUES(streak)"
+                    "ON DUPLICATE KEY UPDATE streak = VALUES(streak)"
     }
 
     private val addKitPurchaseSql = when (type) {
         StorageType.SQLITE ->
             "INSERT INTO $USAGE (kit_id, purchases) VALUES (?, 1) " +
-                "ON CONFLICT(kit_id) DO UPDATE SET purchases = purchases + 1"
+                    "ON CONFLICT(kit_id) DO UPDATE SET purchases = purchases + 1"
         StorageType.MYSQL ->
             "INSERT INTO $USAGE (kit_id, purchases) VALUES (?, 1) " +
-                "ON DUPLICATE KEY UPDATE purchases = purchases + 1"
+                    "ON DUPLICATE KEY UPDATE purchases = purchases + 1"
     }
 
     private val saveAdvancementSql = when (type) {
         StorageType.SQLITE ->
             "INSERT INTO $ADVANCEMENTS (uuid, advancement_id, progress, completed) VALUES (?, ?, ?, ?) " +
-                "ON CONFLICT(uuid, advancement_id) DO UPDATE SET progress = excluded.progress, completed = excluded.completed"
+                    "ON CONFLICT(uuid, advancement_id) DO UPDATE SET progress = excluded.progress, completed = excluded.completed"
         StorageType.MYSQL ->
             "INSERT INTO $ADVANCEMENTS (uuid, advancement_id, progress, completed) VALUES (?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE progress = VALUES(progress), completed = VALUES(completed)"
+                    "ON DUPLICATE KEY UPDATE progress = VALUES(progress), completed = VALUES(completed)"
     }
 
     private fun <T> prepared(sql: String, action: (PreparedStatement) -> T): T =
@@ -212,6 +212,26 @@ class SqlPlayerStorage private constructor(
 
     fun setStreak(uuid: UUID, amount: Long) = update(setStreakSql, uuid.toString(), amount)
 
+    fun reset() {
+        source.connection.use { connection ->
+            val previousAutoCommit = connection.autoCommit
+            connection.autoCommit = false
+            try {
+                connection.createStatement().use { statement ->
+                    for (table in listOf(KITS, PLAYERS, STATS, USAGE, ADVANCEMENTS)) {
+                        statement.executeUpdate("DELETE FROM $table")
+                    }
+                }
+                connection.commit()
+            } catch (failure: Exception) {
+                connection.rollback()
+                throw failure
+            } finally {
+                connection.autoCommit = previousAutoCommit
+            }
+        }
+    }
+
     fun close() {
         source.close()
     }
@@ -278,7 +298,7 @@ class SqlPlayerStorage private constructor(
                 StorageType.MYSQL ->
                     connection.prepareStatement(
                         "SELECT COUNT(*) FROM information_schema.columns " +
-                            "WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?"
+                                "WHERE table_schema = DATABASE() AND table_name = ? AND column_name = ?"
                     ).use { statement ->
                         statement.setString(1, STATS)
                         statement.setString(2, STREAK_COLUMN)
@@ -309,7 +329,7 @@ class SqlPlayerStorage private constructor(
                     val sslMode = if (settings.useSsl) "REQUIRED" else "DISABLED"
                     config.driverClassName = "com.mysql.cj.jdbc.Driver"
                     config.jdbcUrl = "jdbc:mysql://${settings.host}:${settings.port}/${settings.database}" +
-                        "?sslMode=$sslMode&allowPublicKeyRetrieval=true&characterEncoding=utf8"
+                            "?sslMode=$sslMode&allowPublicKeyRetrieval=true&characterEncoding=utf8"
                     config.username = settings.username
                     config.password = settings.password
                     config.maximumPoolSize = settings.poolSize
