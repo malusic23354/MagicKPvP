@@ -1,0 +1,9 @@
+.gradle/
+build/
+run/
+.kotlin/
+.idea/
+out/
+CHANGELOG.md
+release.init.gradle.kts
+dev.gradle.kts
