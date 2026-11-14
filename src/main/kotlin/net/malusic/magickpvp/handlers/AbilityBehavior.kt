@@ -47,6 +47,12 @@ class AbilityRegistry {
         behavior.aliases.forEach { lookup[normalize(it)] = behavior }
     }
 
+    fun unregister(name: String): AbilityBehavior? {
+        val behavior = behaviors.remove(normalize(name)) ?: return null
+        lookup.values.removeIf { it === behavior }
+        return behavior
+    }
+
     fun get(name: String): AbilityBehavior? = lookup[normalize(name)]
 
     fun all(): Collection<AbilityBehavior> = behaviors.values
