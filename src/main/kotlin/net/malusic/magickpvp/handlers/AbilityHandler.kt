@@ -9,6 +9,7 @@ import org.bukkit.entity.Player
 import org.bukkit.entity.Projectile
 import org.bukkit.event.EventHandler
 import org.bukkit.event.EventPriority
+import org.bukkit.event.HandlerList
 import org.bukkit.event.Listener
 import org.bukkit.event.block.Action
 import org.bukkit.event.entity.PlayerDeathEvent
@@ -147,6 +148,18 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
     private fun add(behavior: AbilityBehavior) {
         registry.register(behavior)
         if (behavior is Listener) plugin.server.pluginManager.registerEvents(behavior, plugin)
+    }
+
+    fun install(behavior: AbilityBehavior) {
+        uninstall(behavior.key)
+        add(behavior)
+    }
+
+    fun uninstall(key: String): Boolean {
+        val old = registry.unregister(key) ?: return false
+        old.reset()
+        if (old is Listener) HandlerList.unregisterAll(old)
+        return true
     }
 
     private fun canUse(player: Player): Boolean {

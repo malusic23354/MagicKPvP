@@ -207,6 +207,21 @@ With PlaceholderAPI installed, the plugin registers placeholders such as:
 
 The complete list is in the [PlaceholderAPI Reference](https://magickpvp.wispbyte.org/#/reference-and-troubleshooting/placeholderapi-reference).
 
+## Developer API
+
+Other plugins can add their own abilities or replace built-in ones. Get the service from Bukkit's services manager:
+
+```kotlin
+val api = Bukkit.getServicesManager().load(AbilityApi::class.java)
+api?.register(yourPlugin, MyAbility())
+```
+
+- `register(owner, behavior)` adds an ability, or replaces the one already under the same key. Reuse a built-in key, such as `dash`, to override it.
+- `unregister(key)` removes an ability and returns `true` if one was removed.
+- `get(key)` returns the ability registered under a key, or `null`.
+
+Abilities registered by a plugin are removed automatically when that plugin is disabled. Add `depend: [MagickPvP]` (or `softdepend`) to your `plugin.yml` so MagicKPvP loads first, and call the API from the main server thread.
+
 ## Building from source
 
 Requires JDK 25 to build; the plugin itself runs on Java 21+.
