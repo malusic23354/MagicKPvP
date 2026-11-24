@@ -15,7 +15,10 @@ import java.util.UUID
 import kotlin.math.cos
 import kotlin.math.sin
 
-class SilenceAbility(private val plugin: PluginManager) : AbilityBehavior, Listener {
+class SilenceAbility(
+    private val plugin: PluginManager,
+    private val actions: AbilityActions
+) : AbilityBehavior, Listener {
 
     private class Zone(
         val owner: UUID,
@@ -26,6 +29,7 @@ class SilenceAbility(private val plugin: PluginManager) : AbilityBehavior, Liste
         val includeOwner: Boolean,
         val linger: Long,
         val effects: List<TimedEffect>,
+        val inside: MutableSet<UUID> = HashSet(),
         var shownAt: Long = 0L
     )
 
@@ -98,7 +102,9 @@ class SilenceAbility(private val plugin: PluginManager) : AbilityBehavior, Liste
         val effects = ability.config.timedEffects("effects", ticks) {
             warnUnknownEffect(it)
         }
-        silence(owner, target, ability, ticks, ticks / 20L, effects)
+        if (silence(owner, target, ability, ticks, ticks / 20L, effects)) {
+            actions.runCommands(ability, target, owner)
+        }
     }
 
     private fun warnUnknownEffect(raw: String) {
@@ -115,10 +121,14 @@ class SilenceAbility(private val plugin: PluginManager) : AbilityBehavior, Liste
     private fun pulse(zone: Zone, owner: Player, now: Long) {
         val remainingTicks = ((zone.until - now) / 50L).coerceAtLeast(1L)
         val ticks = minOf(zone.linger, remainingTicks)
+        val present = HashSet<UUID>()
         for (player in zone.center.world.getNearbyPlayers(zone.center, zone.radius)) {
             if (player.uniqueId == zone.owner && !zone.includeOwner) continue
-            silence(owner, player, zone.ability, ticks, remainingTicks / 20L, zone.effects)
+            if (!silence(owner, player, zone.ability, ticks, remainingTicks / 20L, zone.effects)) continue
+            present += player.uniqueId
+            if (zone.inside.add(player.uniqueId)) actions.runCommands(zone.ability, player, owner)
         }
+        zone.inside.retainAll(present)
         if (now - zone.shownAt >= 1000L) {
             zone.shownAt = now
             ring(zone)
@@ -148,17 +158,17 @@ class SilenceAbility(private val plugin: PluginManager) : AbilityBehavior, Liste
         ticks: Long,
         seconds: Long,
         effects: List<TimedEffect>
-    ) {
-        if (target.isDead || target.gameMode == GameMode.SPECTATOR) return
+    ): Boolean {
+        if (target.isDead || target.gameMode == GameMode.SPECTATOR) return false
         val self = target.uniqueId == owner.uniqueId
-        if (!self && !plugin.combat.abilitiesAllowed(target)) return
+        if (!self && !plugin.combat.abilitiesAllowed(target)) return false
 
         val fresh = !blocks(target)
         val until = System.currentTimeMillis() + ticks * 50L
         silencedUntil[target.uniqueId] = maxOf(silencedUntil[target.uniqueId] ?: 0L, until)
         effects.forEach { it.applyTo(target) }
 
-        if (!fresh) return
+        if (!fresh) return true
         if (!self) plugin.abilities.releaseAll(target.uniqueId)
 
         ability.config.getString("message")?.takeIf { it.isNotBlank() }?.let {
@@ -169,6 +179,7 @@ class SilenceAbility(private val plugin: PluginManager) : AbilityBehavior, Liste
             ability.particle?.particle ?: Particle.SMOKE,
             target.location.add(0.0, 2.0, 0.0), 15, 0.3, 0.2, 0.3, 0.02
         )
+        return true
     }
 
     override fun tick() {

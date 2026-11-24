@@ -11,7 +11,10 @@ import java.util.UUID
 import kotlin.math.cos
 import kotlin.math.sin
 
-class BlackHoleAbility(private val plugin: PluginManager) : AbilityBehavior {
+class BlackHoleAbility(
+    private val plugin: PluginManager,
+    private val actions: AbilityActions
+) : AbilityBehavior {
 
     override val key = "blackhole"
     override val aliases = setOf("black_hole")
@@ -45,7 +48,7 @@ class BlackHoleAbility(private val plugin: PluginManager) : AbilityBehavior {
         val particle = ability.particle?.particle ?: Particle.PORTAL
         val amount = (ability.particle?.amount ?: 30).coerceAtLeast(4)
         val ownerId = owner.uniqueId
-
+        val caught = HashSet<UUID>()
         var age = 0L
         lateinit var hole: Hole
         val task = plugin.server.globalRegionScheduler.runAtFixedRate(plugin, {
@@ -76,6 +79,10 @@ class BlackHoleAbility(private val plugin: PluginManager) : AbilityBehavior {
                     val pull = toCenter.normalize().multiply(strength * (1.0 - distance / (radius * 1.2)).coerceIn(0.2, 1.0))
                     entity.velocity = entity.velocity.multiply(0.6).add(pull)
                     entity.fallDistance = 0f
+                }
+                if (entity is Player && caught.add(entity.uniqueId)) {
+                    actions.runCommands(ability, entity, owner)
+                    actions.sendMessages(ability, entity, owner)
                 }
                 if (age % 10L == 0L) effects.forEach { it.applyTo(entity) }
                 if (damage > 0.0 && age % 20L == 0L) {
