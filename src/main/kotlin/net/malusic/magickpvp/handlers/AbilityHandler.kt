@@ -55,6 +55,7 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
         add(RewindAbility(plugin))
         add(BloodlustAbility(plugin))
         add(SilenceAbility(plugin, actions))
+        add(HeadhunterAbility(plugin))
 
         VersionAPI.adapter(plugin).extraAbilities(plugin).forEach { add(it) }
     }
@@ -109,7 +110,11 @@ class AbilityHandler(private val plugin: PluginManager) : Listener {
                 material == Material.SNOWBALL ||
                 material == Material.EGG
 
+    private fun holdingRanged(player: Player): Boolean =
+        isRangedWeapon(player.inventory.itemInMainHand.type) || isRangedWeapon(player.inventory.itemInOffHand.type)
+
     private fun notify(player: Player, reason: String, messageKey: String) {
+        if (holdingRanged(player)) return
         val key = player.uniqueId to reason
         val now = System.currentTimeMillis()
 

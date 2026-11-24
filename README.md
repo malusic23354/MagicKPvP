@@ -25,7 +25,7 @@ MagicKPvP turns a Paper server into a kit PvP arena. Kits are plain YAML: every 
 **Kits and items**
 
 - Multi-item kits defined in `items.yml`, with names, lore, enchantments, attributes, potion data, glow, `unbreakable` items and buy/sell prices.
-- [15 ability types](#ability-types): auras, dashes, summons, totems, decoys, black holes, chain lightning, rewinds, silences and more.
+- [16 ability types](#ability-types): auras, dashes, summons, totems, decoys, black holes, chain lightning, rewinds, silences and more.
 - Per-player item cooldowns (`10s`, `500ms`, `2m`), optional permission-based reduction and an action-bar countdown.
 - Optional XP and kill requirements before a kit can be bought.
 - [Nexo](https://docs.nexomc.com/) item support for custom textures and models on kit items, spawn selector items, stats menu icons and advancement menu icons.
@@ -160,6 +160,7 @@ The main command is `/magickpvp`, with `/mkp` as an alias. `/spawn` is a shortcu
 | `rewind` | Right click | Returns you to an earlier position and health |
 | `bloodlust` | On kill | Stacks buffs for each kill |
 | `silence` | Right click or projectile hit | Blocks abilities and stops active ones |
+| `headhunter` | Bow or crossbow shot | Fires an instant laser that damages the first player in `range`, optionally ignoring armor. Arrows keep working during the cooldown |
 
 Aliases: `radius_effect`, `randomizedtarget`, `black_hole`, `chainlightning`. Full options for each ability are in the [Ability Options](https://malusic-network.gitbook.io/magickpvp/kits-and-abilities/ability-options) page.
 
